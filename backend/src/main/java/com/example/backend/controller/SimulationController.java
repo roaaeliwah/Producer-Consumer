@@ -20,13 +20,13 @@ public class SimulationController {
     // ------------------------
 
     @PostMapping("/queues")
-    public void createQueue(@RequestBody QueueDTO queueDTO) {
-        simulationService.addQueue(queueDTO.getQueueId());
+    public void createQueue() {
+        simulationService.addQueue();
     }
 
     @PostMapping("/machines")
-    public void createMachine(@RequestBody MachineDTO machineDTO) {
-        simulationService.addMachine(machineDTO.getMachineId());
+    public void createMachine() {
+        simulationService.addMachine();
     }
 
     @PostMapping("/connections/input")
@@ -44,13 +44,13 @@ public class SimulationController {
     // ------------------------
 
     @PostMapping("/simulation/start")
-    public void startSimulation() {
-        simulationService.start();
+    public void startSimulation(@RequestParam int productCount) {
+        simulationService.startSimulation(productCount);
     }
 
     @PostMapping("/simulation/stop")
     public void stopSimulation() {
-        simulationService.stop();
+        simulationService.stopSimulation();
     }
 
     @PostMapping("/simulation/replay")

@@ -6,11 +6,12 @@ import lombok.Data;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Data
 public class Machine implements Runnable, QueueObserver {
-    private final String id;
-    private MachineState state;
+    private final String id = UUID.randomUUID().toString();
+    private MachineState state = MachineState.IDLE;
     private String currentColor = "GRAY";
 
     private List<SimQueue> inputQueues = new ArrayList<>();
@@ -21,10 +22,6 @@ public class Machine implements Runnable, QueueObserver {
     private volatile boolean notified = false;
     private volatile boolean running = true;
 
-    public Machine(String id) {
-        this.id = id;
-        this.state = MachineState.IDLE;
-    }
     @Override
     public void update(){
         synchronized (lock){
@@ -53,6 +50,7 @@ public class Machine implements Runnable, QueueObserver {
 
                 // Forward product
                 if (outputQueue != null) {
+                    //might be replaced with a list of multiple output queues later
                     outputQueue.put(product);
                 }
 
@@ -103,35 +101,17 @@ public class Machine implements Runnable, QueueObserver {
 
     private void setState(MachineState newState) {
         this.state = newState;
-        notifyObservers();
     }
 
     private void setColor(String color) {
         this.currentColor = color;
-        notifyObservers();
     }
 
     private void resetColor() {
         this.currentColor = "GRAY";
-        notifyObservers();
     }
 
     public void stopMachine() {
         running = false;
-    }
-
-    private void notifyObservers() {
-        // Hook for UI observers / WebSocket updates / snapshot recording
-    }
-    public String getCurrentColor() {
-        return this.currentColor;
-    }
-
-    public MachineState getState() {
-        return this.state;
-    }
-
-    public int getId() {
-        return this.id;
     }
 }

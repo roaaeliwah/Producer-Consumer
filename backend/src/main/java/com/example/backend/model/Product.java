@@ -1,15 +1,14 @@
 package com.example.backend.model;
 
+import com.example.backend.util.ColorGenerator;
 import lombok.Data;
 import lombok.Getter;
 
+import java.util.UUID;
+
 @Data
 public class Product {
-    private final int id;
-    private final String color;
-
-    public Product(int id, String color) {
-        this.id = id;
-        this.color = color;
-    }
+    private final String id = UUID.randomUUID().toString();
+    private ColorGenerator colorGenerator = new ColorGenerator();
+    private final String color = colorGenerator.randomHexColor();
 }
