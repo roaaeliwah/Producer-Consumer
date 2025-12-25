@@ -4,23 +4,25 @@ import com.example.backend.observer.QueueObserver;
 import lombok.Data;
 
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
 public class Machine implements Runnable, QueueObserver {
-    private final Object lock = new Object();
-    private volatile boolean notified = false;
-    private final int id;
+    private final String id;
     private MachineState state;
     private String currentColor = "GRAY";
-    private List<SimQueue> inputQueues;
+
+    private List<SimQueue> inputQueues = new ArrayList<>();
     private SimQueue outputQueue;
+
+    private final Object lock = new Object();
+
+    private volatile boolean notified = false;
     private volatile boolean running = true;
 
-    public Machine(int id, List<SimQueue> inputQueues, SimQueue outputQueue) {
+    public Machine(String id) {
         this.id = id;
-        this.inputQueues = inputQueues;
-        this.outputQueue = outputQueue;
         this.state = MachineState.IDLE;
     }
     @Override
@@ -78,7 +80,7 @@ public class Machine implements Runnable, QueueObserver {
             }
             synchronized (lock){
                 while (!notified && running){
-                    lock.wait(); // go to sleep untill a queue update()
+                    lock.wait(); // go to sleep until a queue update()
                 }
                 notified = false;
             }
@@ -120,5 +122,16 @@ public class Machine implements Runnable, QueueObserver {
 
     private void notifyObservers() {
         // Hook for UI observers / WebSocket updates / snapshot recording
+    }
+    public String getCurrentColor() {
+        return this.currentColor;
+    }
+
+    public MachineState getState() {
+        return this.state;
+    }
+
+    public int getId() {
+        return this.id;
     }
 }

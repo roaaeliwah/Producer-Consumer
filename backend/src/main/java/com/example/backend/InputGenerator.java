@@ -2,37 +2,51 @@ package com.example.backend;
 
 import com.example.backend.model.Product;
 import com.example.backend.model.SimQueue;
+import com.example.backend.util.ColorGenerator;
 
 public class InputGenerator implements Runnable {
 
-    private final SimQueue inputQueue;
-    private int productCounter = 0; // to assign unique IDs to products
+    private final SimQueue outputQueue;
     private volatile boolean running = true;
+    private int productCounter = 0;
+    private ColorGenerator colorGenerator;
 
-    public InputGenerator(SimQueue inputQueue) {
-        this.inputQueue = inputQueue;
+    // Arrival time bounds (milliseconds)
+    private final int minArrivalTime;
+    private final int maxArrivalTime;
+
+    public InputGenerator(SimQueue outputQueue,
+                          int minArrivalTime,
+                          int maxArrivalTime) {
+        this.outputQueue = outputQueue;
+        this.minArrivalTime = minArrivalTime;
+        this.maxArrivalTime = maxArrivalTime;
     }
 
     @Override
     public void run() {
-        while (running) {
-            try {
-                Thread.sleep(300 + (int)(Math.random() * 700));
-                Product p = new Product(productCounter++, randomColor());
-                inputQueue.put(p);
-                System.out.println("Generated product " + p.getId());
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+        try {
+            while (running) {
+
+                // 1. Wait for next arrival
+                int arrivalTime = minArrivalTime +
+                        (int) (Math.random() * (maxArrivalTime - minArrivalTime));
+                Thread.sleep(arrivalTime);
+
+                // 2. Generate a new product
+                Product product = new Product(productCounter++, colorGenerator.randomHexColor());
+
+                // 3. Enqueue into first queue (Q0)
+                outputQueue.put(product);
             }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 
-    private String randomColor() {
-        return "#" + Integer.toHexString((int)(Math.random() * 0xFFFFFF));
-    }
-
-    public void stop() {
+    public void stopGenerator() {
         running = false;
     }
 }
+
 

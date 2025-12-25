@@ -11,10 +11,10 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 @Data
 public class SimQueue implements QueueSubject {
-    private final int id;
+    private final String id;
     private LinkedBlockingQueue<Product> products = new LinkedBlockingQueue<>();
     private List<QueueObserver> observers = new ArrayList<>();
-    public SimQueue(int id) {
+    public SimQueue(String id) {
         this.id = id;
     }
 
@@ -45,4 +45,10 @@ public class SimQueue implements QueueSubject {
     public int size() {
         return products.size();
     }
+
+    public int getId() {
+        return this.id;
+    }
+
+
 }
