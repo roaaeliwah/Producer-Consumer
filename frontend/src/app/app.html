@@ -2,19 +2,48 @@
   <link rel="stylesheet" href="app.css">
 </head>
 <body>
-<header>
-  <h2>Factory Simulation</h2>
-</header>
-<div class="canvas">
-  <div class="buttons">
-    <button class="Q">
+<div class="container">
+  <div class="top-container">
+    <button
+      id="Q"
+      class="Q"
+      (click)="selectTool('Q')"
+      [class.active]="selectedTool === 'Q'"
+    [disabled]="isRunning">
       <img src="assets/build-queue-svgrepo-com.svg" alt="not here">
     </button>
-    <button class="M">
+    <button
+      id="M"
+      class="M"
+      (click)="selectTool('M')"
+      [class.active]="selectedTool === 'M'"
+      [disabled]="isRunning">
     <img src="assets/machine-learning-solid-svgrepo-com.svg">
     </button>
+    <button class="replay"
+            [disabled]="isRunning"
+    (click)="replaySimulation()">
+      <img src="assets/replay-svgrepo-com.svg">
+    </button>
+    <button class="End"
+    (click)="stopSimulation()">
+      <img src="assets/stop-svgrepo-com.svg">
+    </button>
+    <button class="Start"
+            (click)="startSimulation()"
+            [disabled]="isRunning">
+      <img src="assets/mini-arrow-start-svgrepo-com.svg">
+    </button>
+    <button class="Clear"
+            (click)="Clear()"
+            [disabled]="isRunning">
+      <img src="assets/clear-format-svgrepo-com.svg">
+    </button>
   </div>
-  <canvas id="MyCanvas">
+  <canvas #myCanvas
+          (mousemove)="onMouseMove($event)"
+          id="MyCanvas"
+          (click)="onCanvasClick($event)">
 
   </canvas>
 </div>

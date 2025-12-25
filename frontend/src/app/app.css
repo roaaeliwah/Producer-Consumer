@@ -3,23 +3,38 @@
   padding:0;
   box-sizing: border-box;
 }
+@media (prefers-color-scheme: dark) {
+  body{
+    background-color: #282c34;
+    color: white;
+  }
+}
 body{
   height:100vh;
   width:100vw;
-  background-color:#ccc;
 }
-header{
-  padding:20px;
-  border-bottom:1px solid black;
-  border-radius: 5px;
-  background-color:white;
+.container{
+  display:flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  position: relative;
+  width: 100vw;
+  height: 100vh;
 }
 #MyCanvas{
-  background-color:#f9f9f9;
-  display:flex;
+  background-image:linear-gradient(to right,#cccccc 1px, transparent 1px ),
+  linear-gradient(to bottom, #cccccc 1px , transparent 1px);
+  background-size:20px 20px;
+  display:block;
+  width:100%;
+  height:100%;
   flex-grow: 1;
-  max-height:60vh;
-  border-radius: 0 0 10px 10px;
+  border:1px solid #ccc;
+  border-radius:0 0 10px 10px;
+  position:absolute;
+  top:0;
+  left:0;
 }
 img{
   width:30px;
@@ -30,87 +45,67 @@ img{
   margin:20px;
   flex-grow: 1;
   display:flex;
-  max-height: 65vh;
-  position: relative;
 }
-.buttons{
+.top-container{
   display:flex;
-  flex-direction: row;
+  justify-content: space-evenly;
   align-items: center;
-  justify-content: start;
-  background-color:#f9f9f9;
-  border-radius:10px 10px 0 0;
-  border-bottom: 1px solid gray;
-  min-height:60px;
+  flex-direction: row;
+  min-height: 50px;
+  background-color: rgba(24, 24, 24, 0.85);
+  backdrop-filter: blur(10px);
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: auto;
+  min-width: 30vw;
+  z-index: 100;
+  border-radius: 50px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
   gap: 10px;
 }
- button{
-  margin-left: 10px;
-  border:1px solid transparent;
-  position: relative;
-  z-index: 1;
+button {
+  margin: 0 5px; /* Even spacing between tools */
+  border: none;
+  background: #e2e2e2;
+  border-radius: 50%;
+  width: 45px;
+  height: 45px;
   display: flex;
-  justify-content: center;
   align-items: center;
-  background: #f9f9f9;
-  isolation: isolate;
-  overflow: visible;
-  cursor:pointer;
-  border-radius: 10px;
-   min-width: 30px;
-   min-height: 30px;
+  justify-content: center;
+  transition: all 0.2s ease;
+  padding:10px;
+  cursor: pointer;
 }
- button img{
-  display: block;
-  position: relative;
-   background-color: #f9f9f9;
-   border-radius: 12px;
-   padding: 6px;
-   min-width: 35px;
-   min-height: 35px;
+button img {
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  padding: 0;
 }
- @property --angle {
-   syntax: "<angle>";
-   initial-value: 0deg;
-   inherits: false;
- }
- .buttons button::after, .buttons button::before{
-  content: "";
-  position: absolute;
-  height: calc(100% + 4px);
-  width: calc(100% + 4px);
-  top:50%;
-  left: 50%;
-  transform: translate(-50%,-50%);
-  z-index: -1;
-  border-radius: 12px;
-  background-image: conic-gradient(from var(--angle) ,blue,red,blue);
-   opacity: 0;
-   visibility: hidden;
-   transition: all .2s ease-in-out;
-  animation:3s spin linear infinite;
-}
- @keyframes spin {
-   from{
-     --angle:0deg;
-   }
-   to{
-    --angle:360deg;
-   }
- }
- .buttons button:hover::after, .buttons button:hover::before{
-   opacity: 1;
-   visibility: visible;
- }
-.buttons button.active::after, button.active::before {
-  opacity: 1;
-  visibility: visible;
-}
-.buttons button::before{
-  filter:blur(3px);
-  opacity: 0.1;
+button:hover {
+  background: #007bff;
+  transform: translateY(-2px);
 }
 button:active{
   transform:scale(1.05);
-  transition: transform .1s ease-out;
+}
+.End:hover{
+  box-shadow: 1px 1px 8px #8a0707;
+  background: #8a0707;
+}
+.Start:hover{
+  box-shadow: 0 0px 10px #226422;
+  background: #226422;
+}
+button.active{
+  background: #007bff;
+  border:1px solid white;
+  transform: scale(1.1);
+}
+.Clear:hover{
+  background: #e2e2e2;
+  box-shadow: 2px 2px 8px #ff0505;
 }
