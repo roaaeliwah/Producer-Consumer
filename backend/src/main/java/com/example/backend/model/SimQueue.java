@@ -45,4 +45,10 @@ public class SimQueue implements QueueSubject {
     public int size() {
         return products.size();
     }
+
+    public int getId() {
+        return this.id;
+    }
+
+
 }
