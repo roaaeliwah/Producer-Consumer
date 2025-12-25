@@ -1,0 +1,116 @@
+*{
+  margin:0;
+  padding:0;
+  box-sizing: border-box;
+}
+body{
+  height:100vh;
+  width:100vw;
+  background-color:#ccc;
+}
+header{
+  padding:20px;
+  border-bottom:1px solid black;
+  border-radius: 5px;
+  background-color:white;
+}
+#MyCanvas{
+  background-color:#f9f9f9;
+  display:flex;
+  flex-grow: 1;
+  max-height:60vh;
+  border-radius: 0 0 10px 10px;
+}
+img{
+  width:30px;
+  height:30px;
+}
+.canvas{
+  flex-direction: column;
+  margin:20px;
+  flex-grow: 1;
+  display:flex;
+  max-height: 65vh;
+  position: relative;
+}
+.buttons{
+  display:flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: start;
+  background-color:#f9f9f9;
+  border-radius:10px 10px 0 0;
+  border-bottom: 1px solid gray;
+  min-height:60px;
+  gap: 10px;
+}
+ button{
+  margin-left: 10px;
+  border:1px solid transparent;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #f9f9f9;
+  isolation: isolate;
+  overflow: visible;
+  cursor:pointer;
+  border-radius: 10px;
+   min-width: 30px;
+   min-height: 30px;
+}
+ button img{
+  display: block;
+  position: relative;
+   background-color: #f9f9f9;
+   border-radius: 12px;
+   padding: 6px;
+   min-width: 35px;
+   min-height: 35px;
+}
+ @property --angle {
+   syntax: "<angle>";
+   initial-value: 0deg;
+   inherits: false;
+ }
+ .buttons button::after, .buttons button::before{
+  content: "";
+  position: absolute;
+  height: calc(100% + 4px);
+  width: calc(100% + 4px);
+  top:50%;
+  left: 50%;
+  transform: translate(-50%,-50%);
+  z-index: -1;
+  border-radius: 12px;
+  background-image: conic-gradient(from var(--angle) ,blue,red,blue);
+   opacity: 0;
+   visibility: hidden;
+   transition: all .2s ease-in-out;
+  animation:3s spin linear infinite;
+}
+ @keyframes spin {
+   from{
+     --angle:0deg;
+   }
+   to{
+    --angle:360deg;
+   }
+ }
+ .buttons button:hover::after, .buttons button:hover::before{
+   opacity: 1;
+   visibility: visible;
+ }
+.buttons button.active::after, button.active::before {
+  opacity: 1;
+  visibility: visible;
+}
+.buttons button::before{
+  filter:blur(3px);
+  opacity: 0.1;
+}
+button:active{
+  transform:scale(1.05);
+  transition: transform .1s ease-out;
+}

@@ -1,12 +1,15 @@
 package com.example.backend.model;
 
+import com.example.backend.observer.QueueObserver;
 import lombok.Data;
 
 import java.awt.*;
 import java.util.List;
 
 @Data
-public class Machine implements Runnable{
+public class Machine implements Runnable, QueueObserver {
+    private final Object lock = new Object();
+    private volatile boolean notified = false;
     private final int id;
     private MachineState state;
     private String currentColor = "GRAY";
@@ -20,7 +23,13 @@ public class Machine implements Runnable{
         this.outputQueue = outputQueue;
         this.state = MachineState.IDLE;
     }
-
+    @Override
+    public void update(){
+        synchronized (lock){
+            notified = true;
+            lock.notify(); // to wake up the thread
+        }
+    }
     @Override
     public void run() {
         try {
@@ -57,11 +66,25 @@ public class Machine implements Runnable{
     private Product dequeueFromAnyInput() throws InterruptedException {
         while (running) {
             for (SimQueue queue : inputQueues) {
-                if (queue.size() > 0) {
-                    return queue.take();
+                Product product = queue.take();
+                // take return null if empty
+                if (product != null) {
+                    return product;
                 }
             }
-            Thread.sleep(50); // prevent busy waiting
+            // if all the queues are empty register as ready
+            for(SimQueue queue : inputQueues){
+                queue.attach(this);
+            }
+            synchronized (lock){
+                while (!notified && running){
+                    lock.wait(); // go to sleep untill a queue update()
+                }
+                notified = false;
+            }
+            for(SimQueue queue : inputQueues){
+                queue.detach(this);
+            }
         }
         throw new InterruptedException("Machine stopped");
     }
