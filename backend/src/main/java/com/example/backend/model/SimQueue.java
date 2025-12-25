@@ -7,23 +7,22 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 @Data
 public class SimQueue {
-    private final String id;
-    private BlockingQueue<Product> buffer;
+    private final int id;
+    private LinkedBlockingQueue<Product> queue = new LinkedBlockingQueue<>();
 
-    public SimQueue(String id) {
+    public SimQueue(int id) {
         this.id = id;
-        this.buffer = new LinkedBlockingQueue<>();
     }
 
     public void put(Product product) throws InterruptedException {
-        buffer.put(product);
+        queue.put(product);
     }
 
     public Product take() throws InterruptedException {
-        return buffer.take(); // blocks if empty
+        return queue.take(); // blocks if empty
     }
 
     public int size() {
-        return buffer.size();
+        return queue.size();
     }
 }
