@@ -123,4 +123,15 @@ public class Machine implements Runnable, QueueObserver {
     private void notifyObservers() {
         // Hook for UI observers / WebSocket updates / snapshot recording
     }
+    public String getCurrentColor() {
+        return this.currentColor;
+    }
+
+    public MachineState getState() {
+        return this.state;
+    }
+
+    public int getId() {
+        return this.id;
+    }
 }
