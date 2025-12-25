@@ -7,11 +7,9 @@ import lombok.Getter;
 public class Product {
     private final int id;
     private final String color;
-    private String state;
 
     public Product(int id, String color) {
         this.id = id;
         this.color = color;
-        this.state = "WAITING";
     }
 }
