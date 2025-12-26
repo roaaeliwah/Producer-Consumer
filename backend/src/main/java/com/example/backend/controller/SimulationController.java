@@ -6,6 +6,7 @@ import com.example.backend.dto.SimStateDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
 @RequestMapping("/api")
@@ -85,11 +86,16 @@ public class SimulationController {
         return ResponseEntity.ok().build();
     }
 
-
-    // 3️⃣ Live Updates / Polling
+    // Live Updates / Polling
 
     @GetMapping("/simulation/state")
     public ResponseEntity<SimStateDTO> getSimulationState() {
         return ResponseEntity.ok(simulationService.getCurrentState());
+    }
+
+
+    @GetMapping("/simulation/stream")
+    public SseEmitter streamSimulation() {
+        return simulationService.createEmitter();
     }
 }

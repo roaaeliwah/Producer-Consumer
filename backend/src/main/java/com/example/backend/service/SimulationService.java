@@ -9,12 +9,15 @@ import com.example.backend.model.Machine;
 import com.example.backend.model.SimQueue;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 @Service
 public class SimulationService {
+    private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
 
     private SimulationMode mode = SimulationMode.STOPPED;
     // Queues by ID (all queues both in and out)
@@ -239,15 +242,33 @@ public class SimulationService {
         caretaker.clear();
     }
 
+    // sse/ send each snapshot to the frontend in real time
     public void publishSnapshot(SimulationSnapshot snapshot) {
-        // sse
+        SimStateDTO dto = SimStateMapper.toDTO(snapshot, machines, queues, mode);
+
+        synchronized (emitters) {
+            Iterator<SseEmitter> it = emitters.iterator();
+            while (it.hasNext()) {
+                SseEmitter emitter = it.next();
+                try {
+                    emitter.send(dto);
+                } catch (Exception e) {
+                    it.remove();
+                }
+            }
+        }
     }
 
+    public SseEmitter createEmitter() {
+        SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);    // no timeout, the connection stays alive indefinitely
+        emitters.add(emitter);
 
+        emitter.onCompletion(() -> emitters.remove(emitter));
+        emitter.onTimeout(() -> emitters.remove(emitter));
+        emitter.onError((e) -> emitters.remove(emitter));
 
-    //replay
-    //reset
-    //getCurrentState
+        return emitter;
+    }
 
 
     public void recordFrame(long currentTime) {
