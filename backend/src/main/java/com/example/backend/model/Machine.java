@@ -6,12 +6,13 @@ import lombok.Data;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Data
 public class Machine implements Runnable, QueueObserver {
-    private final String id;
-    private MachineState state;
-    private String currentColor = "GRAY";
+    private final String id = UUID.randomUUID().toString();
+    private volatile MachineState state = MachineState.IDLE;
+    private volatile String currentColor = "GRAY";
 
     private List<SimQueue> inputQueues = new ArrayList<>();
     private SimQueue outputQueue;
@@ -21,10 +22,6 @@ public class Machine implements Runnable, QueueObserver {
     private volatile boolean notified = false;
     private volatile boolean running = true;
 
-    public Machine(String id) {
-        this.id = id;
-        this.state = MachineState.IDLE;
-    }
     @Override
     public void update(){
         synchronized (lock){
@@ -35,7 +32,7 @@ public class Machine implements Runnable, QueueObserver {
     @Override
     public void run() {
         try {
-            while (running) {
+            while (running && !Thread.currentThread().isInterrupted()) {
 
                 setState(MachineState.IDLE);
 
@@ -53,6 +50,7 @@ public class Machine implements Runnable, QueueObserver {
 
                 // Forward product
                 if (outputQueue != null) {
+                    //might be replaced with a list of multiple output queues later
                     outputQueue.put(product);
                 }
 
@@ -62,6 +60,10 @@ public class Machine implements Runnable, QueueObserver {
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+        }
+        finally {
+            setState(MachineState.IDLE);
+            resetColor();
         }
     }
 
@@ -103,35 +105,17 @@ public class Machine implements Runnable, QueueObserver {
 
     private void setState(MachineState newState) {
         this.state = newState;
-        notifyObservers();
     }
 
     private void setColor(String color) {
         this.currentColor = color;
-        notifyObservers();
     }
 
     private void resetColor() {
         this.currentColor = "GRAY";
-        notifyObservers();
     }
 
     public void stopMachine() {
         running = false;
-    }
-
-    private void notifyObservers() {
-        // Hook for UI observers / WebSocket updates / snapshot recording
-    }
-    public String getCurrentColor() {
-        return this.currentColor;
-    }
-
-    public MachineState getState() {
-        return this.state;
-    }
-
-    public int getId() {
-        return this.id;
     }
 }

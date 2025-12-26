@@ -1,4 +1,4 @@
-package com.example.backend.Snapshot;
+package com.example.backend.snapshot;
 
 import org.springframework.stereotype.Service;
 import java.util.ArrayList;

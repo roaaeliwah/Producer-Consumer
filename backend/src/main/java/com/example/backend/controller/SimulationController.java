@@ -2,10 +2,9 @@ package com.example.backend.controller;
 
 import com.example.backend.service.SimulationService;
 import com.example.backend.dto.ConnectionDTO;
-import com.example.backend.dto.MachineDTO;
-import com.example.backend.dto.QueueDTO;
 import com.example.backend.dto.SimStateDTO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -15,42 +14,55 @@ public class SimulationController {
     @Autowired
     private SimulationService simulationService;
 
-    // ------------------------
-    // 1️⃣ Graph Construction
-    // ------------------------
+
+    // Graph Construction
 
     @PostMapping("/queues")
-    public void createQueue(@RequestBody QueueDTO queueDTO) {
-        simulationService.addQueue(queueDTO.getQueueId());
+    public ResponseEntity<?> createQueue() {
+        simulationService.addQueue();
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/machines")
-    public void createMachine(@RequestBody MachineDTO machineDTO) {
-        simulationService.addMachine(machineDTO.getMachineId());
+    public ResponseEntity<?> createMachine() {
+        simulationService.addMachine();
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/queue/{queueId}")
+    public void deleteQueue(@PathVariable String queueId) {
+        simulationService.deleteQueue(queueId);
+    }
+
+    @DeleteMapping("/machine/{machineId}")
+    public void deleteMachine(@PathVariable String machineId) {
+        simulationService.deleteMachine(machineId);
     }
 
     @PostMapping("/connections/input")
-    public void connectInputQueue(@RequestBody ConnectionDTO connectionDTO) {
+    public ResponseEntity<?> connectInputQueue(@RequestBody ConnectionDTO connectionDTO) {
         simulationService.connectInputQueue(connectionDTO.getMachineId(), connectionDTO.getQueueId());
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/connections/output")
-    public void connectOutputQueue(@RequestBody ConnectionDTO connectionDTO) {
+    public ResponseEntity<?> connectOutputQueue(@RequestBody ConnectionDTO connectionDTO) {
         simulationService.connectOutputQueue(connectionDTO.getMachineId(), connectionDTO.getQueueId());
+        return ResponseEntity.ok().build();
     }
 
-    // ------------------------
+
     // 2️⃣ Simulation Control
-    // ------------------------
+
 
     @PostMapping("/simulation/start")
-    public void startSimulation() {
-        simulationService.start();
+    public void startSimulation(@RequestParam int productCount) {
+        simulationService.startSimulation(productCount);
     }
 
     @PostMapping("/simulation/stop")
     public void stopSimulation() {
-        simulationService.stop();
+        simulationService.stopSimulation();
     }
 
     @PostMapping("/simulation/replay")
@@ -63,9 +75,8 @@ public class SimulationController {
         simulationService.reset();
     }
 
-    // ------------------------
+
     // 3️⃣ Live Updates / Polling
-    // ------------------------
 
     @GetMapping("/simulation/state")
     public SimStateDTO getSimulationState() {

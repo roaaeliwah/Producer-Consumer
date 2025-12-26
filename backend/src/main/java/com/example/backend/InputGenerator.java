@@ -2,49 +2,32 @@ package com.example.backend;
 
 import com.example.backend.model.Product;
 import com.example.backend.model.SimQueue;
-import com.example.backend.util.ColorGenerator;
 
 public class InputGenerator implements Runnable {
 
     private final SimQueue outputQueue;
+    private final int productCount;
     private volatile boolean running = true;
-    private int productCounter = 0;
-    private ColorGenerator colorGenerator;
 
-    // Arrival time bounds (milliseconds)
-    private final int minArrivalTime;
-    private final int maxArrivalTime;
-
-    public InputGenerator(SimQueue outputQueue,
-                          int minArrivalTime,
-                          int maxArrivalTime) {
+    public InputGenerator(SimQueue outputQueue, int productCount) {
         this.outputQueue = outputQueue;
-        this.minArrivalTime = minArrivalTime;
-        this.maxArrivalTime = maxArrivalTime;
+        this.productCount = productCount;
     }
 
     @Override
     public void run() {
-        try {
-            while (running) {
-
-                // 1. Wait for next arrival
-                int arrivalTime = minArrivalTime +
-                        (int) (Math.random() * (maxArrivalTime - minArrivalTime));
-                Thread.sleep(arrivalTime);
-
-                // 2. Generate a new product
-                Product product = new Product(productCounter++, colorGenerator.randomHexColor());
-
-                // 3. Enqueue into first queue (Q0)
-                outputQueue.put(product);
+        for (int i = 0; i < productCount && running; i++) {
+            try {
+                Product p = new Product();   // generates ID + color
+                outputQueue.put(p);   // notify machines via observer
+                Thread.sleep(500 + (int)(Math.random() * 500)); // random interval
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
             }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
         }
     }
 
-    public void stopGenerator() {
+    public void stop() {
         running = false;
     }
 }
