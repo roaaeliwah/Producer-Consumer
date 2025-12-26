@@ -103,6 +103,10 @@ public class SimulationService {
         if (machine == null) throw new IllegalArgumentException("Machine not found: " + machineId);
         if (queue == null) throw new IllegalArgumentException("Queue not found: " + queueId);
 
+        if (hasPath(machineId, queueId, new HashSet<>())) {
+            throw new IllegalStateException("This would create a loop");
+        }
+
         // Add queue to machine's input list if not already there
         if (!machine.getInputQueues().contains(queue)) {
             machine.getInputQueues().add(queue);
@@ -132,6 +136,9 @@ public class SimulationService {
         if (machine == null) throw new IllegalArgumentException("Machine not found");
         if (queue == null) throw new IllegalArgumentException("Queue not found");
 
+        if (hasPath(queueId, machineId, new HashSet<>())) {
+            throw new IllegalStateException("This would create a loop");
+        }
         // Add to list if not present
         if (!machine.getOutputQueues().contains(queue)) {
             machine.getOutputQueues().add(queue);
@@ -342,5 +349,39 @@ public class SimulationService {
         if (latest != null) {
             publishSnapshot(latest);
         }
+    }
+
+// for cycles
+    private boolean hasPath(String currentId, String targetId, Set<String> visited) {
+
+        if (currentId.equals(targetId)) return true;
+
+        if (visited.contains(currentId)) return false;
+        visited.add(currentId);
+
+        // Current Node is a MACHINE
+        if (machines.containsKey(currentId)) {
+            Machine machine = machines.get(currentId);
+            for (SimQueue outQ : machine.getOutputQueues()) {
+                if (hasPath(outQ.getId(), targetId, visited)) {
+                    return true;
+                }
+            }
+        }
+        // Current Node is a QUEUE
+        else if (queues.containsKey(currentId)) {
+            for (Machine m : machines.values()) {
+                boolean consumesFromThisQueue = m.getInputQueues().stream()
+                        .anyMatch(q -> q.getId().equals(currentId));
+
+                if (consumesFromThisQueue) {
+                    if (hasPath(m.getId(), targetId, visited)) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 }
