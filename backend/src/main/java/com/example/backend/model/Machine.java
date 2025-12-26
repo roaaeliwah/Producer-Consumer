@@ -14,7 +14,7 @@ import java.util.UUID;
 public class Machine implements Runnable, QueueObserver {
 
     private Runnable onStateChange;
-    private final String id = UUID.randomUUID().toString();
+    private final String id;
     private volatile MachineState state = MachineState.IDLE;
     private volatile String currentColor = "GRAY";
 
@@ -25,7 +25,11 @@ public class Machine implements Runnable, QueueObserver {
     private final Object lock = new Object();
 
     private volatile boolean notified = false;
-    private volatile boolean running = true;
+    private volatile boolean running = false;
+
+    public Machine(String id) {
+        this.id = id;
+    }
 
     @Override
     public void update(){

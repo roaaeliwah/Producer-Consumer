@@ -18,8 +18,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 @Service
 public class SimulationService {
-    @Autowired
-    private Machine machine;
     private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
 
     private SimulationMode mode = SimulationMode.STOPPED;
@@ -50,46 +48,54 @@ public class SimulationService {
     @Autowired
     private SimulationCareTaker caretaker;
 
-    public SimulationService() {
-        SimQueue q0 = new SimQueue();
-        String queueId = q0.getId();
-        queues.put(queueId, q0);
-        allQueues.add(q0);
-    }
 
-
-    public String addQueue() {
+    public String addQueue(String id) {
         if (running) return null ; // prevent changes during simulation
+        if(queues.containsKey(id)){
+            throw new IllegalArgumentException("Queue with ID " + id + " already exists.");
+        }
 
-        SimQueue queue = new SimQueue();
+        SimQueue queue = new SimQueue(id);
         queue.setOnUpdate(this::triggerSnapshot);
         String queueId = queue.getId();
         queues.put(queueId, queue);
         allQueues.add(queue);
 
+        System.out.println("Added queue with ID " + queueId);
+        System.out.println(allQueues);
+
         return queue.getId();
     }
 
-    public String addMachine() {
+    public String addMachine(String id) {
         if (running) return null ; // prevent changes during simulation
 
+        if(machines.containsKey(id)){
+            throw new IllegalArgumentException("Machine with ID " + id + " already exists.");
+        }
 
         // Initialize with empty input/output queues
-        Machine machine = new Machine();
+        Machine machine = new Machine(id);
         machine.setOnStateChange(this::triggerSnapshot);
         String machineId = machine.getId();
         machines.put(machineId, machine);
         allMachines.add(machine);
+
+        System.out.println("Added machine with ID " + machineId);
+        System.out.println(allMachines);
+
         return machine.getId();
     }
 
     public void deleteQueue(String queueId) {
         if (running) return;
+        System.out.println("Removing queue with ID " + queueId);
         queues.remove(queueId);
     }
 
     public void deleteMachine(String machineId) {
         if (running) return;
+        System.out.println("Removing machine with ID " + machineId);
         machines.remove(machineId);
 
     }
@@ -112,18 +118,10 @@ public class SimulationService {
             machine.getInputQueues().add(queue);
         }
 
+        System.out.println("Connected input queue " + queueId + " to machine " + machineId);
+
         // Register machine as observer to the queue
         queue.attach(machine);
-
-        // Optional: track this connection explicitly if using a Connection model
-//        if (connections != null) {
-//            connections.add(new Connection(
-//                    UUID.randomUUID().toString(),
-//                    queue.getId(),
-//                    machine.getId(),
-//                    ConnectionType.INPUT
-//            ));
-//        }
     }
 
 
@@ -143,6 +141,8 @@ public class SimulationService {
         if (!machine.getOutputQueues().contains(queue)) {
             machine.getOutputQueues().add(queue);
         }
+
+        System.out.println("Connected output queue " + queueId + " to machine " + machineId);
     }
 
     //ConnectOutputQueue (later, figure out whether it's one or more first)

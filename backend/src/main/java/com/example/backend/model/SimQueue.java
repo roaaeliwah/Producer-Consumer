@@ -15,9 +15,13 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class SimQueue implements QueueSubject {
 
     private Runnable onUpdate;
-    private String id = UUID.randomUUID().toString();
+    private String id;
     private LinkedBlockingQueue<Product> products = new LinkedBlockingQueue<>();
     private List<QueueObserver> observers = new ArrayList<>();
+
+    public  SimQueue(String id) {
+        this.id = id;
+    }
 
     public synchronized void put(Product product){
         products.add(product);

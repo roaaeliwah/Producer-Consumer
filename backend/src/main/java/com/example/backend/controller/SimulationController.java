@@ -1,5 +1,6 @@
 package com.example.backend.controller;
 
+import com.example.backend.dto.CreateDTO;
 import com.example.backend.service.SimulationService;
 import com.example.backend.dto.ConnectionDTO;
 import com.example.backend.dto.SimStateDTO;
@@ -11,6 +12,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.util.Collections;
 
 @RestController
+@CrossOrigin("http://localhost:4200")
 @RequestMapping("/api")
 public class SimulationController {
 
@@ -21,16 +23,18 @@ public class SimulationController {
     // Graph Construction
 
     @PostMapping("/queues")
-    public ResponseEntity<?> createQueue() {
-      String id =  simulationService.addQueue();
-        return ResponseEntity.ok(Collections.singletonMap("id", id));
+    public ResponseEntity<?> createQueue(@RequestBody CreateDTO dto) {
+        simulationService.addQueue(dto.getId());
+        return ResponseEntity.ok().build();
     }
 
+
     @PostMapping("/machines")
-    public ResponseEntity<?> createMachine() {
-        String id = simulationService.addMachine();
-        return ResponseEntity.ok(Collections.singletonMap("id", id));
+    public ResponseEntity<?> createMachine(@RequestBody CreateDTO dto) {
+        String id = simulationService.addMachine(dto.getId());
+        return ResponseEntity.ok().build();
     }
+
 
     @DeleteMapping("/queue/{queueId}")
     public void deleteQueue(@PathVariable String queueId) {
