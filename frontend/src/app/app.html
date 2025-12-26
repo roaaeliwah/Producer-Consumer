@@ -20,6 +20,11 @@
       [disabled]="isRunning">
     <img src="assets/machine-learning-solid-svgrepo-com.svg">
     </button>
+    <button (click)="selectTool('D')"
+            [class.active]="selectedTool === 'D'"
+            style="background-color: #e74c3c; color: white;">
+      🗑️ Delete
+    </button>
     <button class="replay"
             [disabled]="isRunning"
     (click)="replaySimulation()">
@@ -39,9 +44,16 @@
             [disabled]="isRunning">
       <img src="assets/clear-format-svgrepo-com.svg">
     </button>
+    <button class="Clear"
+            (click)="testSimulationWithMockData()"
+            [disabled]="isRunning">
+      <img src="assets/clear-format-svgrepo-com.svg">
+    </button>
   </div>
   <canvas #myCanvas
           (mousemove)="onMouseMove($event)"
+          (mousedown)="onMouseDown($event)"
+          (mouseup)="onMouseUp($event)"
           id="MyCanvas"
           (click)="onCanvasClick($event)">
 
