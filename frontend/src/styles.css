@@ -1,5 +1,19 @@
-*{
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background-color: #1a1a1a; /* Very dark gray */
+  color: #eeeeee;
+  overflow: hidden; /* Prevents unwanted scrollbars */
+}
+
+/* Smooth transitions for buttons globally */
+button {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+}
+
+/* The Cursor for the whole app when no tool is selected */
+.app-shell {
+  cursor: default;
 }

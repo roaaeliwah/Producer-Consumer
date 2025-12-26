@@ -1,62 +1,7 @@
-<head>
-  <link rel="stylesheet" href="app.css">
-</head>
-<body>
-<div class="container">
-  <div class="top-container">
-    <button
-      id="Q"
-      class="Q"
-      (click)="selectTool('Q')"
-      [class.active]="selectedTool === 'Q'"
-    [disabled]="isRunning">
-      <img src="assets/build-queue-svgrepo-com.svg" alt="not here">
-    </button>
-    <button
-      id="M"
-      class="M"
-      (click)="selectTool('M')"
-      [class.active]="selectedTool === 'M'"
-      [disabled]="isRunning">
-    <img src="assets/machine-learning-solid-svgrepo-com.svg">
-    </button>
-    <button (click)="selectTool('D')"
-            [class.active]="selectedTool === 'D'"
-            style="background-color: #e74c3c; color: white;">
-      🗑️ Delete
-    </button>
-    <button class="replay"
-            [disabled]="isRunning"
-    (click)="replaySimulation()">
-      <img src="assets/replay-svgrepo-com.svg">
-    </button>
-    <button class="End"
-    (click)="stopSimulation()">
-      <img src="assets/stop-svgrepo-com.svg">
-    </button>
-    <button class="Start"
-            (click)="startSimulation()"
-            [disabled]="isRunning">
-      <img src="assets/mini-arrow-start-svgrepo-com.svg">
-    </button>
-    <button class="Clear"
-            (click)="Clear()"
-            [disabled]="isRunning">
-      <img src="assets/clear-format-svgrepo-com.svg">
-    </button>
-    <button class="Clear"
-            (click)="testSimulationWithMockData()"
-            [disabled]="isRunning">
-      <img src="assets/clear-format-svgrepo-com.svg">
-    </button>
-  </div>
-  <canvas #myCanvas
-          (mousemove)="onMouseMove($event)"
-          (mousedown)="onMouseDown($event)"
-          (mouseup)="onMouseUp($event)"
-          id="MyCanvas"
-          (click)="onCanvasClick($event)">
+<div class="app-shell">
+  <app-toolbar></app-toolbar>
 
-  </canvas>
+  <app-canvas-renderer></app-canvas-renderer>
 </div>
-</body>
+
+<router-outlet></router-outlet>

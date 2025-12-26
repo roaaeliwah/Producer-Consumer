@@ -1,111 +1,45 @@
-*{
-  margin:0;
-  padding:0;
-  box-sizing: border-box;
-}
-@media (prefers-color-scheme: dark) {
-  body{
-    background-color: #282c34;
-    color: white;
-  }
-}
-body{
-  height:100vh;
-  width:100vw;
-}
-.container{
-  display:flex;
-  justify-content: center;
-  align-items: center;
+.app-shell {
+  display: flex;
   flex-direction: column;
-  position: relative;
   width: 100vw;
   height: 100vh;
+  background-color: #121212; /* Deep black */
 }
-#MyCanvas{
-  background-image:linear-gradient(to right,#cccccc 1px, transparent 1px ),
-  linear-gradient(to bottom, #cccccc 1px , transparent 1px);
-  background-size:30px 30px;
-  display:block;
-  width:100%;
-  height:100%;
+
+app-canvas-renderer {
   flex-grow: 1;
-  border:1px solid #ccc;
-  border-radius:0 0 10px 10px;
-  position:absolute;
-  top:0;
-  left:0;
+  position: relative;
 }
-img{
-  width:30px;
-  height:30px;
-}
-.canvas{
-  flex-direction: column;
-  margin:20px;
-  flex-grow: 1;
-  display:flex;
-}
-.top-container{
-  display:flex;
-  justify-content: space-evenly;
-  align-items: center;
-  flex-direction: row;
-  min-height: 50px;
-  background-color: rgba(24, 24, 24, 0.85);
-  backdrop-filter: blur(10px);
-  position: absolute;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: auto;
-  min-width: 30vw;
-  z-index: 100;
-  border-radius: 50px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-  gap: 10px;
-}
-button {
-  margin: 0 5px; /* Even spacing between tools */
-  border: none;
-  background: #e2e2e2;
-  border-radius: 50%;
-  width: 45px;
-  height: 45px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-  padding:10px;
-  cursor: pointer;
-}
-button img {
-  width: 24px;
-  height: 24px;
-  background: transparent;
+/* Ensure the app takes up the full screen */
+:host {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
   padding: 0;
+  overflow: hidden;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
-button:hover {
-  background: #007bff;
-  transform: translateY(-2px);
+
+.app-shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: #1a1a1a; /* Dark background behind everything */
 }
-button:active{
-  transform:scale(1.05);
+
+/* This container holds your CanvasRenderer */
+app-canvas-renderer {
+  flex-grow: 1; /* Tells the canvas to take all remaining space below the toolbar */
+  width: 100%;
+  height: 100%;
+  display: block;
 }
-.End:hover{
-  box-shadow: 1px 1px 8px #8a0707;
-  background: #8a0707;
+
+/* If your toolbar is floating (position: absolute), this keeps the canvas behind it */
+app-toolbar {
+  z-index: 10;
 }
-.Start:hover{
-  box-shadow: 0 0px 10px #226422;
-  background: #226422;
-}
-button.active{
-  background: #007bff;
-  border:1px solid white;
-  transform: scale(1.1);
-}
-.Clear:hover{
-  background: #e2e2e2;
-  box-shadow: 2px 2px 8px #ff0505;
-}
+
