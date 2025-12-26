@@ -11,8 +11,8 @@ import java.util.UUID;
 @Data
 public class Machine implements Runnable, QueueObserver {
     private final String id = UUID.randomUUID().toString();
-    private MachineState state = MachineState.IDLE;
-    private String currentColor = "GRAY";
+    private volatile MachineState state = MachineState.IDLE;
+    private volatile String currentColor = "GRAY";
 
     private List<SimQueue> inputQueues = new ArrayList<>();
     private SimQueue outputQueue;
@@ -32,7 +32,7 @@ public class Machine implements Runnable, QueueObserver {
     @Override
     public void run() {
         try {
-            while (running) {
+            while (running && !Thread.currentThread().isInterrupted()) {
 
                 setState(MachineState.IDLE);
 
@@ -60,6 +60,10 @@ public class Machine implements Runnable, QueueObserver {
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+        }
+        finally {
+            setState(MachineState.IDLE);
+            resetColor();
         }
     }
 

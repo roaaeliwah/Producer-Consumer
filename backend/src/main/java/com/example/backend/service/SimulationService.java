@@ -8,28 +8,30 @@ import com.example.backend.model.SimQueue;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class SimulationService {
     // Queues by ID (all queues both in and out)
-    private Map<String, SimQueue> queues = new HashMap<>();
+    private Map<String, SimQueue> queues = new ConcurrentHashMap<>();       // ConcurrentHashMap >> thread-safe
 
     // Machines by ID
-    private Map<String, Machine> machines = new HashMap<>();
+    private Map<String, Machine> machines = new ConcurrentHashMap<>();
 
     // Simulation state
-    private boolean running = false;
+    private volatile boolean running = false;
 
     // Snapshots history
-    private List<SimulationSnapshot> snapshots = new ArrayList<>();
+//    private List<SimulationSnapshot> snapshots = new ArrayList<>();   // use caretaker instead
 
     //for recording snapshots
-    private final List<Machine> allMachines = new ArrayList<>();
-    private final List<SimQueue> allQueues = new ArrayList<>();
+    private final List<Machine> allMachines = Collections.synchronizedList(new ArrayList<>());
+    private final List<SimQueue> allQueues = Collections.synchronizedList(new ArrayList<>());
+
+    private Thread snapshotThread;
+    private InputGenerator inputGenerator;
+    private Thread inputThread;
 
     @Autowired
     private SimulationCareTaker caretaker;
@@ -61,6 +63,17 @@ public class SimulationService {
         allMachines.add(machine);
     }
 
+    public void deleteQueue(String queueId) {
+        if (running) return;
+        queues.remove(queueId);
+    }
+
+    public void deleteMachine(String machineId) {
+        if (running) return;
+        machines.remove(machineId);
+
+    }
+
     public void connectInputQueue(String machineId, String queueId) {
         if (running) return; // prevent changes while simulation is running
 
@@ -89,6 +102,10 @@ public class SimulationService {
 //        }
     }
 
+
+//    public void connectOutputQueue(String machineId, String queueId) {
+//    }
+
     //ConnectOutputQueue (later, figure out whether it's one or more first)
 
     public void startSimulation(int productCount) {
@@ -98,9 +115,11 @@ public class SimulationService {
         // 1. Get Q0 (first queue)
         SimQueue q0 = allQueues.get(0); // assume first queue is Q0
 
+        validateConnections();
+
         // 2. Start InputGenerator thread
-        InputGenerator inputGenerator = new InputGenerator(q0, productCount);
-        Thread inputThread = new Thread(inputGenerator);
+        inputGenerator = new InputGenerator(q0, productCount);
+        inputThread = new Thread(inputGenerator);
         inputThread.start();
 
         // 3. Start all machines threads
@@ -110,13 +129,13 @@ public class SimulationService {
         }
 
         // 4. Start snapshot thread
-        Thread snapshotThread = new Thread(() -> {
+        snapshotThread = new Thread(() -> {
             while (running) {
                 try {
                     recordFrame(System.currentTimeMillis());
                     Thread.sleep(200); // record every 200ms
                 } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
+                    break;
                 }
             }
         });
@@ -128,6 +147,13 @@ public class SimulationService {
     public void stopSimulation() {
         if (!running) return; // simulation already stopped
         running = false;
+
+        if (snapshotThread != null) {
+            snapshotThread.interrupt();
+        }
+        if (inputGenerator != null) {
+            inputGenerator.stop();
+        }
 
         // Stop all machines
         for (Machine m : machines.values()) {
@@ -141,6 +167,10 @@ public class SimulationService {
         recordFrame(System.currentTimeMillis());
     }
 
+
+    public void replay() {
+
+    }
 
 
     //replay
@@ -167,5 +197,17 @@ public class SimulationService {
         caretaker.addSnapshot(new com.example.backend.snapshot.SimulationSnapshot(colors, states, qSizes, currentTime));
     }
 
+    private void validateConnections() {
+        for (Machine machine : machines.values()) {
+            if (machine.getInputQueues().isEmpty()) {
+                throw new IllegalStateException
+                        ("Machine " + machine.getId() + " has no input queues");
+            }
+            if (machine.getOutputQueue() == null) {
+                throw new IllegalStateException
+                        ("Machine " + machine.getId() + " has no output queues");
+            }
+        }
+    }
 
 }

@@ -7,12 +7,11 @@ import lombok.Data;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 @Data
 public class SimQueue implements QueueSubject {
-    private final String id = UUID.randomUUID().toString();
+    private String id = UUID.randomUUID().toString();
     private LinkedBlockingQueue<Product> products = new LinkedBlockingQueue<>();
     private List<QueueObserver> observers = new ArrayList<>();
 
@@ -38,7 +37,7 @@ public class SimQueue implements QueueSubject {
     }
 
     @Override
-    public void notifyObservers(){ // notify the first empty observer
+    public void notifyObservers(){           // notify the first empty observer
         if(!observers.isEmpty() && !products.isEmpty()){
             QueueObserver firstReadyMachine = observers.remove(0);
             firstReadyMachine.update();
