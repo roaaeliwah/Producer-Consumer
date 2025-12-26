@@ -1,7 +1,9 @@
 package com.example.backend.model;
 
 import com.example.backend.observer.QueueObserver;
+import com.example.backend.service.SimulationService;
 import lombok.Data;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -10,6 +12,8 @@ import java.util.UUID;
 
 @Data
 public class Machine implements Runnable, QueueObserver {
+
+    private Runnable onStateChange;
     private final String id = UUID.randomUUID().toString();
     private volatile MachineState state = MachineState.IDLE;
     private volatile String currentColor = "GRAY";
@@ -103,16 +107,23 @@ public class Machine implements Runnable, QueueObserver {
         Thread.sleep(200);
     }
 
+    public void setOnStateChange(Runnable callback) {
+        this.onStateChange = callback;
+    }
+
     private void setState(MachineState newState) {
         this.state = newState;
+        if (onStateChange != null) onStateChange.run();
     }
 
     private void setColor(String color) {
         this.currentColor = color;
+        if (onStateChange != null) onStateChange.run();
     }
 
     private void resetColor() {
         this.currentColor = "GRAY";
+        if (onStateChange != null) onStateChange.run();
     }
 
     public void stopMachine() {

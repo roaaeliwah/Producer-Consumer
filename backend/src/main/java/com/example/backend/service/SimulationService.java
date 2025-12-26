@@ -3,6 +3,7 @@ package com.example.backend.service;
 import com.example.backend.InputGenerator;
 import com.example.backend.dto.SimStateDTO;
 import com.example.backend.mapper.SimStateMapper;
+import com.example.backend.model.Product;
 import com.example.backend.snapshot.SimulationCareTaker;
 import com.example.backend.snapshot.SimulationSnapshot;
 import com.example.backend.model.Machine;
@@ -17,6 +18,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 @Service
 public class SimulationService {
+    @Autowired
+    private Machine machine;
     private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
 
     private SimulationMode mode = SimulationMode.STOPPED;
@@ -36,7 +39,7 @@ public class SimulationService {
     private final List<Machine> allMachines = Collections.synchronizedList(new ArrayList<>());
     private final List<SimQueue> allQueues = Collections.synchronizedList(new ArrayList<>());
 
-    private Thread snapshotThread;
+
     private InputGenerator inputGenerator;
     private Thread inputThread;
 
@@ -59,6 +62,7 @@ public class SimulationService {
         if (running) return; // prevent changes during simulation
 
         SimQueue queue = new SimQueue();
+        queue.setOnUpdate(this::triggerSnapshot);
         String queueId = queue.getId();
         queues.put(queueId, queue);
         allQueues.add(queue);
@@ -67,8 +71,10 @@ public class SimulationService {
     public void addMachine() {
         if (running) return; // prevent changes during simulation
 
+
         // Initialize with empty input/output queues
         Machine machine = new Machine();
+        machine.setOnStateChange(this::triggerSnapshot);
         String machineId = machine.getId();
         machines.put(machineId, machine);
         allMachines.add(machine);
@@ -142,17 +148,7 @@ public class SimulationService {
         }
 
         // 4. Start snapshot thread
-        snapshotThread = new Thread(() -> {
-            while (running) {
-                try {
-                    recordFrame(System.currentTimeMillis());
-                    Thread.sleep(200); // record every 200ms
-                } catch (InterruptedException e) {
-                    break;
-                }
-            }
-        });
-        snapshotThread.start();
+        triggerSnapshot();
     }
 
     //stop
@@ -163,9 +159,7 @@ public class SimulationService {
         running = false;
         mode = SimulationMode.STOPPED;
 
-        if (snapshotThread != null) {
-            snapshotThread.interrupt();
-        }
+
         if (inputGenerator != null) {
             inputGenerator.stop();
         }
@@ -179,7 +173,7 @@ public class SimulationService {
         }
         
         // Record final snapshot
-        recordFrame(System.currentTimeMillis());
+        triggerSnapshot();
     }
 
 
@@ -275,19 +269,24 @@ public class SimulationService {
         Map<String, String> colors = new HashMap<>();
         Map<String, String> states = new HashMap<>();
         Map<String, Integer> qSizes = new HashMap<>();
-
+        Map<String, List<String>> qProductColors = new HashMap<>();
 
         for (Machine m : allMachines) {
             colors.put(m.getId(), m.getCurrentColor());
             states.put(m.getId(), m.getState().toString());
         }
 
-
         for (SimQueue q : allQueues) {
             qSizes.put(q.getId(), q.size());
+
+
+            List<String> currentColors = q.getProducts().stream()
+                    .map(Product::getColor)
+                    .toList();
+            qProductColors.put(q.getId(), currentColors);
         }
 
-        caretaker.addSnapshot(new com.example.backend.snapshot.SimulationSnapshot(colors, states, qSizes, currentTime));
+        caretaker.addSnapshot(new SimulationSnapshot(colors, states, qSizes, qProductColors, currentTime));
     }
 
     private void validateConnections() {
@@ -318,5 +317,15 @@ public class SimulationService {
         }
 
         return SimStateMapper.toDTO(snapshot, machines, queues, mode);
+    }
+
+    public synchronized void triggerSnapshot() {
+        if (!running) return;
+        recordFrame(System.currentTimeMillis());
+
+        SimulationSnapshot latest = caretaker.getCurrentSnapshot();
+        if (latest != null) {
+            publishSnapshot(latest);
+        }
     }
 }
