@@ -6,6 +6,7 @@ import com.example.backend.dto.SimStateDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
 @RequestMapping("/api")
@@ -56,30 +57,45 @@ public class SimulationController {
 
 
     @PostMapping("/simulation/start")
-    public void startSimulation(@RequestParam int productCount) {
+    public ResponseEntity<?> startSimulation(@RequestParam int productCount) {
         simulationService.startSimulation(productCount);
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/simulation/stop")
-    public void stopSimulation() {
+    public ResponseEntity<?> stopSimulation() {
         simulationService.stopSimulation();
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/simulation/replay")
-    public void replaySimulation() {
-        simulationService.replay();
+    public ResponseEntity<?> replaySimulation(@RequestParam (defaultValue = "200") long intervalT) {
+        simulationService.replay(intervalT);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/simulation/stopReplay")
+    private ResponseEntity<?> stopReplay(){
+        simulationService.stopReplay();
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/simulation/reset")
-    public void resetSimulation() {
+    public ResponseEntity<?> resetSimulation() {
         simulationService.reset();
+        return ResponseEntity.ok().build();
+    }
+
+    // Live Updates / Polling
+
+    @GetMapping("/simulation/state")
+    public ResponseEntity<SimStateDTO> getSimulationState() {
+        return ResponseEntity.ok(simulationService.getCurrentState());
     }
 
 
-    // 3️⃣ Live Updates / Polling
-
-    @GetMapping("/simulation/state")
-    public SimStateDTO getSimulationState() {
-        return simulationService.getCurrentState();
+    @GetMapping("/simulation/stream")
+    public SseEmitter streamSimulation() {
+        return simulationService.createEmitter();
     }
 }

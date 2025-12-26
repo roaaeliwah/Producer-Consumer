@@ -118,4 +118,10 @@ public class Machine implements Runnable, QueueObserver {
     public void stopMachine() {
         running = false;
     }
+
+    public void reset() {
+        stopMachine();
+        resetColor();
+        state = MachineState.IDLE;
+    }
 }
