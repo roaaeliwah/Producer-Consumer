@@ -228,8 +228,8 @@ export class App implements AfterViewInit {
     if(!this.isConnecting && this.selectedTool){
       if(!this.selectedTool || !this.ctx) return;
       const rect = this.canvasRef.nativeElement.getBoundingClientRect();
-      const x = Math.round((event.clientX - rect.left) /20)*20;
-      const y = Math.round((event.clientY - rect.top) /20)*20;
+      const x = Math.round((event.clientX - rect.left) /30)*30;
+      const y = Math.round((event.clientY - rect.top) /30)*30;
       const newobj:canvasObject = {
         id:`${this.selectedTool}${this.idCounter++}`,
         type:this.selectedTool,
