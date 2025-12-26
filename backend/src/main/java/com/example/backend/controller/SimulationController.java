@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.util.Collections;
+
 @RestController
 @RequestMapping("/api")
 public class SimulationController {
@@ -20,14 +22,14 @@ public class SimulationController {
 
     @PostMapping("/queues")
     public ResponseEntity<?> createQueue() {
-        simulationService.addQueue();
-        return ResponseEntity.ok().build();
+      String id =  simulationService.addQueue();
+        return ResponseEntity.ok(Collections.singletonMap("id", id));
     }
 
     @PostMapping("/machines")
     public ResponseEntity<?> createMachine() {
-        simulationService.addMachine();
-        return ResponseEntity.ok().build();
+        String id = simulationService.addMachine();
+        return ResponseEntity.ok(Collections.singletonMap("id", id));
     }
 
     @DeleteMapping("/queue/{queueId}")

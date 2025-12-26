@@ -12,6 +12,7 @@ import com.example.backend.service.SimulationMode;
 import com.example.backend.snapshot.SimulationSnapshot;
 
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -26,13 +27,16 @@ public class SimStateMapper {
         Map<String, String> machineStates = snapshot.getMachineStates();
         Map<String, Integer> queueSizes = snapshot.getQueueSizes();
 
+        Map<String, List<String>> queueProductColors = snapshot.getQueueProductColors();
+
         List<MachineDTO> machineDTOs = machines.values().stream()
                 .map(m -> new MachineDTO(
                         m.getId(),
                         machineStates.getOrDefault(m.getId(), String.valueOf(MachineState.IDLE)),
-                        machineColors.getOrDefault(m.getId(), null),
+                        machineColors.getOrDefault(m.getId(), "GRAY"),
                         m.getInputQueues().stream().map(SimQueue::getId).toList(),
-                        m.getOutputQueue() != null ? List.of(m.getOutputQueue().getId()) : List.of()
+                       // m.getOutputQueue() != null ? List.of(m.getOutputQueue().getId()) : List.of()
+                        m.getOutputQueues().stream().map(SimQueue::getId).toList()
                 ))
                 .toList();
 
@@ -41,7 +45,7 @@ public class SimStateMapper {
                 .map(q -> new QueueDTO(
                         q.getId(),
                         queueSizes.getOrDefault(q.getId(), 0),
-                        q.getProducts().stream().map(Product::getColor).toList()
+                        queueProductColors.getOrDefault(q.getId(), Collections.emptyList())
                 ))
                 .toList();
 
@@ -52,10 +56,18 @@ public class SimStateMapper {
                 .toList());
 
 
-        connectionDTOs.addAll(
+       /* connectionDTOs.addAll(
                 machines.values().stream()
                         .filter(m -> m.getOutputQueue() != null)
                         .map(m -> new ConnectionDTO(m.getId(), m.getOutputQueue().getId(), "OUTPUT"))
+                        .toList()
+        );*/
+
+        connectionDTOs.addAll(
+                machines.values().stream()
+                        .flatMap(m -> m.getOutputQueues().stream()
+                                .map(q -> new ConnectionDTO(m.getId(), q.getId(), "OUTPUT"))
+                        )
                         .toList()
         );
 

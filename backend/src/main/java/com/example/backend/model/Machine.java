@@ -1,7 +1,9 @@
 package com.example.backend.model;
 
 import com.example.backend.observer.QueueObserver;
+import com.example.backend.service.SimulationService;
 import lombok.Data;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -10,12 +12,15 @@ import java.util.UUID;
 
 @Data
 public class Machine implements Runnable, QueueObserver {
+
+    private Runnable onStateChange;
     private final String id = UUID.randomUUID().toString();
     private volatile MachineState state = MachineState.IDLE;
     private volatile String currentColor = "GRAY";
 
     private List<SimQueue> inputQueues = new ArrayList<>();
-    private SimQueue outputQueue;
+  //  private SimQueue outputQueue;
+    private List<SimQueue> outputQueues = new ArrayList<>();
 
     private final Object lock = new Object();
 
@@ -49,9 +54,13 @@ public class Machine implements Runnable, QueueObserver {
                 flash();
 
                 // Forward product
-                if (outputQueue != null) {
+              /*  if (outputQueue != null) {
                     //might be replaced with a list of multiple output queues later
                     outputQueue.put(product);
+                } */
+
+                for (SimQueue queue : outputQueues) {
+                    queue.put(product);
                 }
 
                 // Reset machine
@@ -103,16 +112,23 @@ public class Machine implements Runnable, QueueObserver {
         Thread.sleep(200);
     }
 
+    public void setOnStateChange(Runnable callback) {
+        this.onStateChange = callback;
+    }
+
     private void setState(MachineState newState) {
         this.state = newState;
+        if (onStateChange != null) onStateChange.run();
     }
 
     private void setColor(String color) {
         this.currentColor = color;
+        if (onStateChange != null) onStateChange.run();
     }
 
     private void resetColor() {
         this.currentColor = "GRAY";
+        if (onStateChange != null) onStateChange.run();
     }
 
     public void stopMachine() {

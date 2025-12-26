@@ -2,7 +2,9 @@ package com.example.backend.model;
 
 import com.example.backend.observer.QueueObserver;
 import com.example.backend.observer.QueueSubject;
+import com.example.backend.service.SimulationService;
 import lombok.Data;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,17 +13,24 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 @Data
 public class SimQueue implements QueueSubject {
+
+    private Runnable onUpdate;
     private String id = UUID.randomUUID().toString();
     private LinkedBlockingQueue<Product> products = new LinkedBlockingQueue<>();
     private List<QueueObserver> observers = new ArrayList<>();
 
-    public synchronized void put(Product product){ // add the product
+    public synchronized void put(Product product){
         products.add(product);
         notifyObservers();
+        if(onUpdate != null) onUpdate.run();
     }
 
     public synchronized Product take() {
-        return products.poll(); // returns null if empty
+        Product p = products.poll();
+        if (p != null) {
+            if(onUpdate != null) onUpdate.run();
+        }
+        return p;
     }
 
     @Override
