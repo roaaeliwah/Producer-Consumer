@@ -58,18 +58,20 @@ public class SimulationService {
     }
 
 
-    public void addQueue() {
-        if (running) return; // prevent changes during simulation
+    public String addQueue() {
+        if (running) return null ; // prevent changes during simulation
 
         SimQueue queue = new SimQueue();
         queue.setOnUpdate(this::triggerSnapshot);
         String queueId = queue.getId();
         queues.put(queueId, queue);
         allQueues.add(queue);
+
+        return queue.getId();
     }
 
-    public void addMachine() {
-        if (running) return; // prevent changes during simulation
+    public String addMachine() {
+        if (running) return null ; // prevent changes during simulation
 
 
         // Initialize with empty input/output queues
@@ -78,6 +80,7 @@ public class SimulationService {
         String machineId = machine.getId();
         machines.put(machineId, machine);
         allMachines.add(machine);
+        return machine.getId();
     }
 
     public void deleteQueue(String queueId) {
