@@ -1,6 +1,8 @@
 package com.example.backend.service;
 
 import com.example.backend.InputGenerator;
+import com.example.backend.dto.SimStateDTO;
+import com.example.backend.mapper.SimStateMapper;
 import com.example.backend.snapshot.SimulationCareTaker;
 import com.example.backend.snapshot.SimulationSnapshot;
 import com.example.backend.model.Machine;
@@ -13,6 +15,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class SimulationService {
+
+    private SimulationMode mode = SimulationMode.STOPPED;
     // Queues by ID (all queues both in and out)
     private Map<String, SimQueue> queues = new ConcurrentHashMap<>();       // ConcurrentHashMap >> thread-safe
 
@@ -32,6 +36,10 @@ public class SimulationService {
     private Thread snapshotThread;
     private InputGenerator inputGenerator;
     private Thread inputThread;
+
+
+    private Thread replayThread;
+    private volatile boolean replaying = false;
 
     @Autowired
     private SimulationCareTaker caretaker;
@@ -109,7 +117,9 @@ public class SimulationService {
     //ConnectOutputQueue (later, figure out whether it's one or more first)
 
     public void startSimulation(int productCount) {
-        if (running) return;
+        if (running || mode != SimulationMode.STOPPED) return;
+
+        mode = SimulationMode.LIVE;
         running = true;
 
         // 1. Get Q0 (first queue)
@@ -145,8 +155,10 @@ public class SimulationService {
     //stop
 
     public void stopSimulation() {
-        if (!running) return; // simulation already stopped
+        if (!running || mode != SimulationMode.LIVE) return; // simulation already stopped
+
         running = false;
+        mode = SimulationMode.STOPPED;
 
         if (snapshotThread != null) {
             snapshotThread.interrupt();
@@ -168,9 +180,69 @@ public class SimulationService {
     }
 
 
-    public void replay() {
+    public synchronized void replay(long intervalT) {
+        if (mode.equals(SimulationMode.LIVE))
+            stopSimulation();
 
+        if (caretaker.getHistory().isEmpty()) {
+            throw new IllegalStateException("No snapshots to replay");
+        }
+
+        mode = SimulationMode.REPLAY;
+        replaying = true;
+
+        replayThread = new Thread(() -> {
+            for (SimulationSnapshot snapshot: caretaker.getHistory()) {
+                if (!replaying) break;
+
+                // SEND SNAPSHOT TO UI
+                publishSnapshot(snapshot);
+
+                try {
+                    Thread.sleep(intervalT);
+                } catch (InterruptedException e) {
+                    break;
+                }
+            }
+            mode = SimulationMode.STOPPED;
+            replaying = false;
+
+        });
+        replayThread.start();
     }
+
+    public synchronized void stopReplay() {
+        replaying = false;
+
+        if (replayThread != null) {
+            replayThread.interrupt();
+        }
+
+        mode = SimulationMode.STOPPED;
+    }
+
+    public synchronized void reset () {
+        if (mode == SimulationMode.LIVE) {
+            stopSimulation();
+        }
+
+        mode = SimulationMode.STOPPED;
+
+        for (SimQueue q : allQueues) {
+            q.getProducts().clear();
+        }
+
+        for (Machine m : allMachines) {
+            m.reset();
+        }
+
+        caretaker.clear();
+    }
+
+    public void publishSnapshot(SimulationSnapshot snapshot) {
+        // sse
+    }
+
 
 
     //replay
@@ -210,4 +282,20 @@ public class SimulationService {
         }
     }
 
+    // returns a snapshot of the current state
+    public SimStateDTO getCurrentState() {
+        SimulationSnapshot snapshot = caretaker.getCurrentSnapshot();
+
+        if (snapshot == null) {
+            return new SimStateDTO(
+                    System.currentTimeMillis(),
+                    List.of(),
+                    List.of(),
+                    mode,
+                    List.of()
+            );
+        }
+
+        return SimStateMapper.toDTO(snapshot, machines, queues, mode);
+    }
 }

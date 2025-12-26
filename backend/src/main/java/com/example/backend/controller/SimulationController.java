@@ -56,30 +56,40 @@ public class SimulationController {
 
 
     @PostMapping("/simulation/start")
-    public void startSimulation(@RequestParam int productCount) {
+    public ResponseEntity<?> startSimulation(@RequestParam int productCount) {
         simulationService.startSimulation(productCount);
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/simulation/stop")
-    public void stopSimulation() {
+    public ResponseEntity<?> stopSimulation() {
         simulationService.stopSimulation();
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/simulation/replay")
-    public void replaySimulation() {
-        simulationService.replay();
+    public ResponseEntity<?> replaySimulation(@RequestParam (defaultValue = "200") long intervalT) {
+        simulationService.replay(intervalT);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/simulation/stopReplay")
+    private ResponseEntity<?> stopReplay(){
+        simulationService.stopReplay();
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/simulation/reset")
-    public void resetSimulation() {
+    public ResponseEntity<?> resetSimulation() {
         simulationService.reset();
+        return ResponseEntity.ok().build();
     }
 
 
     // 3️⃣ Live Updates / Polling
 
     @GetMapping("/simulation/state")
-    public SimStateDTO getSimulationState() {
-        return simulationService.getCurrentState();
+    public ResponseEntity<SimStateDTO> getSimulationState() {
+        return ResponseEntity.ok(simulationService.getCurrentState());
     }
 }
