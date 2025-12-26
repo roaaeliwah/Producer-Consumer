@@ -120,8 +120,20 @@ public class SimulationService {
     }
 
 
-//    public void connectOutputQueue(String machineId, String queueId) {
-//    }
+    public void connectOutputQueue(String machineId, String queueId) {
+        if (running) return;
+
+        Machine machine = machines.get(machineId);
+        SimQueue queue = queues.get(queueId);
+
+        if (machine == null) throw new IllegalArgumentException("Machine not found");
+        if (queue == null) throw new IllegalArgumentException("Queue not found");
+
+        // Add to list if not present
+        if (!machine.getOutputQueues().contains(queue)) {
+            machine.getOutputQueues().add(queue);
+        }
+    }
 
     //ConnectOutputQueue (later, figure out whether it's one or more first)
 
@@ -295,7 +307,7 @@ public class SimulationService {
                 throw new IllegalStateException
                         ("Machine " + machine.getId() + " has no input queues");
             }
-            if (machine.getOutputQueue() == null) {
+            if (machine.getOutputQueues().isEmpty()) { // change here
                 throw new IllegalStateException
                         ("Machine " + machine.getId() + " has no output queues");
             }

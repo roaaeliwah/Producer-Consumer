@@ -19,7 +19,8 @@ public class Machine implements Runnable, QueueObserver {
     private volatile String currentColor = "GRAY";
 
     private List<SimQueue> inputQueues = new ArrayList<>();
-    private SimQueue outputQueue;
+  //  private SimQueue outputQueue;
+    private List<SimQueue> outputQueues = new ArrayList<>();
 
     private final Object lock = new Object();
 
@@ -53,9 +54,13 @@ public class Machine implements Runnable, QueueObserver {
                 flash();
 
                 // Forward product
-                if (outputQueue != null) {
+              /*  if (outputQueue != null) {
                     //might be replaced with a list of multiple output queues later
                     outputQueue.put(product);
+                } */
+
+                for (SimQueue queue : outputQueues) {
+                    queue.put(product);
                 }
 
                 // Reset machine
