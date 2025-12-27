@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { CanvasObject, Connection, MovingProduct } from '../models/simulation';
+import {ServerUpdates} from '../models/Updates';
 @Injectable({
   providedIn: 'root'
 })
@@ -66,7 +67,7 @@ export class SimulationService {
     }
   }
 
-  private handleServerupdate(updates:any[]){
+  private handleServerupdate(updates:ServerUpdates[]){
     const currentObjs = [...this.objects];
     updates.forEach(update => {
       const obj = currentObjs.find(o => o.id === update.id);
@@ -74,7 +75,7 @@ export class SimulationService {
         obj.color = update.color;
         obj.productCount = update.productCount;
         if(update.isDispatching && update.fromQueueId){
-          this.spawnProduct(update.productColor, update.fromQueueId, obj.id);
+          this.spawnProduct(update.productColor!, update.fromQueueId, obj.id);
         }
       }
     });
