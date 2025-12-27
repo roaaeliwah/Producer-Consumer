@@ -87,18 +87,18 @@ public class SimulationService {
         return machine.getId();
     }
 
-    public void deleteQueue(String queueId) {
-        if (running) return;
-        System.out.println("Removing queue with ID " + queueId);
-        queues.remove(queueId);
-    }
-
-    public void deleteMachine(String machineId) {
-        if (running) return;
-        System.out.println("Removing machine with ID " + machineId);
-        machines.remove(machineId);
-
-    }
+//    public void deleteQueue(String queueId) {
+//        if (running) return;
+//        System.out.println("Removing queue with ID " + queueId);
+//        queues.remove(queueId);
+//    }
+//
+//    public void deleteMachine(String machineId) {
+//        if (running) return;
+//        System.out.println("Removing machine with ID " + machineId);
+//        machines.remove(machineId);
+//
+//    }
 
     public void connectInputQueue(String machineId, String queueId) {
         if (running) return; // prevent changes while simulation is running
@@ -148,6 +148,7 @@ public class SimulationService {
     //ConnectOutputQueue (later, figure out whether it's one or more first)
 
     public void startSimulation(int productCount) {
+        System.out.println("Starting simulation");
         if (running || mode != SimulationMode.STOPPED) return;
 
         mode = SimulationMode.LIVE;
@@ -158,19 +159,25 @@ public class SimulationService {
 
         validateConnections();
 
+        System.out.println("validated connections");
+
         // 2. Start InputGenerator thread
         inputGenerator = new InputGenerator(q0, productCount);
         inputThread = new Thread(inputGenerator);
         inputThread.start();
+        System.out.println("started input generator");
 
         // 3. Start all machines threads
         for (Machine m : machines.values()) {
+            m.setRunning(true);
             Thread t = new Thread(m);
             t.start();
         }
+        System.out.println("started replay thread");
 
         // 4. Start snapshot thread
         triggerSnapshot();
+        System.out.println("started snapshot thread");
     }
 
     //stop
@@ -276,6 +283,7 @@ public class SimulationService {
     }
 
     public SseEmitter createEmitter() {
+        System.out.println("Creating emitter");
         SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);    // no timeout, the connection stays alive indefinitely
         emitters.add(emitter);
 

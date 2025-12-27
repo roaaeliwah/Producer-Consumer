@@ -5,6 +5,6 @@ import java.util.List;
 
 @Data
 public class ObjectInitDTO {
-    private List<CreateDTO> queues;
-    private List<CreateDTO> machines;
+    private List<String> queues;
+    private List<String> machines;
 }

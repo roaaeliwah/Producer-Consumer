@@ -9,6 +9,8 @@ public class ConnectionDTO {
 
     private String type;        // "INPUT" or "OUTPUT"
 
+    public ConnectionDTO() {}
+
     // Constructor
     public ConnectionDTO(String machineId, String queueId, String type) {
         this.type = type;

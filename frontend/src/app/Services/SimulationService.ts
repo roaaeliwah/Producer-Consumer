@@ -1,5 +1,7 @@
 import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 import { CanvasObject, Connection, MovingProduct } from '../models/simulation';
 @Injectable({
   providedIn: 'root'
@@ -18,7 +20,9 @@ export class SimulationService {
     this._selectedTool$.next(tool);
   }
 
-  constructor() {}
+  private readonly API_URL = 'http://localhost:8080/api';
+
+  constructor(private readonly http: HttpClient) {}
   get objects(){return this.object$.value;}
   get connections(){return this.connections$.value;}
   get movingProducts(){return this.movingProducts$.value;}

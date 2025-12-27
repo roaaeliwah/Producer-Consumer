@@ -1,13 +1,14 @@
 package com.example.backend.facade;
 
 import com.example.backend.dto.ConnectionDTO;
-import com.example.backend.dto.CreateDTO;
 import com.example.backend.dto.ObjectInitDTO;
 import com.example.backend.service.SimulationService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+@Component
 public class SimulationFacade {
     @Autowired
     private SimulationService simulationService;
@@ -16,13 +17,13 @@ public class SimulationFacade {
         simulationService.reset();
 
         if (initData.getQueues() != null) {
-            for (CreateDTO q : initData.getQueues()) {
-                simulationService.addQueue(q.getId());
+            for (String queueId : initData.getQueues()) {
+                simulationService.addQueue(queueId);
             }
         }
         if (initData.getMachines() != null) {
-            for (CreateDTO m : initData.getMachines()) {
-                simulationService.addMachine(m.getId());
+            for (String machineId : initData.getMachines()) {
+                simulationService.addMachine(machineId);
             }
         }
     }

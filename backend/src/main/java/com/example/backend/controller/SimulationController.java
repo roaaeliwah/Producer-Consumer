@@ -1,6 +1,5 @@
 package com.example.backend.controller;
 
-import com.example.backend.dto.CreateDTO;
 import com.example.backend.dto.ObjectInitDTO;
 import com.example.backend.facade.SimulationFacade;
 import com.example.backend.service.SimulationService;
@@ -24,8 +23,6 @@ public class SimulationController {
 
     @Autowired
     private SimulationFacade simulationFacade;
-
-
 
 
     // Graph Construction
@@ -57,15 +54,15 @@ public class SimulationController {
     }
 
 */
-    @DeleteMapping("/queue/{queueId}")
-    public void deleteQueue(@PathVariable String queueId) {
-        simulationService.deleteQueue(queueId);
-    }
-
-    @DeleteMapping("/machine/{machineId}")
-    public void deleteMachine(@PathVariable String machineId) {
-        simulationService.deleteMachine(machineId);
-    }
+//    @DeleteMapping("/queue/{queueId}")
+//    public void deleteQueue(@PathVariable String queueId) {
+//        simulationService.deleteQueue(queueId);
+//    }
+//
+//    @DeleteMapping("/machine/{machineId}")
+//    public void deleteMachine(@PathVariable String machineId) {
+//        simulationService.deleteMachine(machineId);
+//    }
 /*
     @PostMapping("/connections/input")
     public ResponseEntity<?> connectInputQueue(@RequestBody ConnectionDTO connectionDTO) {
@@ -106,6 +103,7 @@ public class SimulationController {
         return ResponseEntity.ok().build();
     }
 
+
     @PostMapping("/simulation/reset")
     public ResponseEntity<?> resetSimulation() {
         simulationService.reset();
@@ -125,3 +123,4 @@ public class SimulationController {
         return simulationService.createEmitter();
     }
 }
+
