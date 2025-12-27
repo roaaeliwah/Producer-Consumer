@@ -1,5 +1,7 @@
 import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 import { CanvasObject, Connection, MovingProduct } from '../models/simulation';
 import {ServerUpdates} from '../models/Updates';
 @Injectable({
@@ -19,7 +21,9 @@ export class SimulationService {
     this._selectedTool$.next(tool);
   }
 
-  constructor() {}
+  private readonly API_URL = 'http://localhost:8080/api';
+
+  constructor(private readonly http: HttpClient) {}
   get objects(){return this.object$.value;}
   get connections(){return this.connections$.value;}
   get movingProducts(){return this.movingProducts$.value;}
@@ -52,7 +56,7 @@ export class SimulationService {
     this.connections$.next(filteredConnections);
   }
 
-  startSimulation(){
+  /*startSimulation(){
     if(this.isRunning) return;
     this.isRunning = true;
     this.animate();
@@ -65,6 +69,50 @@ export class SimulationService {
       eventSource.close();
       this.isRunning = false;
     }
+  }*/
+startSimulation(productCount: number) {
+    if (this.isRunning) return;
+    const objectPayload = {
+      queues: this.objects.filter(o => o.type === 'Q').map(q => ({ id: q.id })),
+      machines: this.objects.filter(o => o.type === 'M').map(m => ({ id: m.id }))
+    };
+    const connectionPayload = this.connections.map(conn => {
+      const source = this.objects.find(o => o.id === conn.fromId);
+      const target = this.objects.find(o => o.id === conn.toId);
+
+      if (source?.type === 'Q' && target?.type === 'M') {
+        return { machineId: target.id, queueId: source.id, type: 'INPUT' };
+      }
+      if (source?.type === 'M' && target?.type === 'Q') {
+        return { machineId: source.id, queueId: target.id, type: 'OUTPUT' };
+      }
+      return null;
+    }).filter(c => c !== null);
+    this.http.post(`${this.API_URL}/init/objects`, objectPayload).pipe(
+
+      switchMap(() => {
+        console.log("Objects created");
+        return this.http.post(`${this.API_URL}/init/connections`, connectionPayload);
+      }),
+
+      switchMap(() => {
+        console.log("Graph built");
+        return this.http.post(`${this.API_URL}/simulation/start?productCount=${productCount}`, {});
+      })
+
+    ).subscribe({
+      next: () => {
+        console.log("Simulation running");
+        this.isRunning = true;
+        this.animate();
+        this.connectToSse();
+      },
+      error: (err) => {
+        console.error("Error:", err);
+        alert("Failed to start simulation");
+        this.isRunning = false;
+      }
+    });
   }
 
   private handleServerupdate(updates:ServerUpdates[]){

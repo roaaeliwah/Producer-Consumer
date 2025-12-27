@@ -20,7 +20,7 @@ public class InputGenerator implements Runnable {
             try {
                 Product p = new Product();   // generates ID + color
                 outputQueue.put(p);   // notify machines via observer
-                Thread.sleep(500 + (int)(Math.random() * 500)); // random interval
+                Thread.sleep(500 + (int)(Math.random() * 1500)); // random interval
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }

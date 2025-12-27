@@ -18,8 +18,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 @Service
 public class SimulationService {
-    @Autowired
-    private Machine machine;
     private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
 
     private SimulationMode mode = SimulationMode.STOPPED;
@@ -50,49 +48,57 @@ public class SimulationService {
     @Autowired
     private SimulationCareTaker caretaker;
 
-    public SimulationService() {
-        SimQueue q0 = new SimQueue();
-        String queueId = q0.getId();
-        queues.put(queueId, q0);
-        allQueues.add(q0);
-    }
 
-
-    public String addQueue() {
+    public String addQueue(String id) {
         if (running) return null ; // prevent changes during simulation
+        if(queues.containsKey(id)){
+            throw new IllegalArgumentException("Queue with ID " + id + " already exists.");
+        }
 
-        SimQueue queue = new SimQueue();
+        SimQueue queue = new SimQueue(id);
         queue.setOnUpdate(this::triggerSnapshot);
         String queueId = queue.getId();
         queues.put(queueId, queue);
         allQueues.add(queue);
 
+        System.out.println("Added queue with ID " + queueId);
+        System.out.println(allQueues);
+
         return queue.getId();
     }
 
-    public String addMachine() {
+    public String addMachine(String id) {
         if (running) return null ; // prevent changes during simulation
 
+        if(machines.containsKey(id)){
+            throw new IllegalArgumentException("Machine with ID " + id + " already exists.");
+        }
 
         // Initialize with empty input/output queues
-        Machine machine = new Machine();
+        Machine machine = new Machine(id);
         machine.setOnStateChange(this::triggerSnapshot);
         String machineId = machine.getId();
         machines.put(machineId, machine);
         allMachines.add(machine);
+
+        System.out.println("Added machine with ID " + machineId);
+        System.out.println(allMachines);
+
         return machine.getId();
     }
 
-    public void deleteQueue(String queueId) {
-        if (running) return;
-        queues.remove(queueId);
-    }
-
-    public void deleteMachine(String machineId) {
-        if (running) return;
-        machines.remove(machineId);
-
-    }
+//    public void deleteQueue(String queueId) {
+//        if (running) return;
+//        System.out.println("Removing queue with ID " + queueId);
+//        queues.remove(queueId);
+//    }
+//
+//    public void deleteMachine(String machineId) {
+//        if (running) return;
+//        System.out.println("Removing machine with ID " + machineId);
+//        machines.remove(machineId);
+//
+//    }
 
     public void connectInputQueue(String machineId, String queueId) {
         if (running) return; // prevent changes while simulation is running
@@ -103,27 +109,19 @@ public class SimulationService {
         if (machine == null) throw new IllegalArgumentException("Machine not found: " + machineId);
         if (queue == null) throw new IllegalArgumentException("Queue not found: " + queueId);
 
-        if (hasPath(machineId, queueId, new HashSet<>())) {
+       /* if (hasPath(machineId, queueId, new HashSet<>())) {
             throw new IllegalStateException("This would create a loop");
-        }
+        } */
 
         // Add queue to machine's input list if not already there
         if (!machine.getInputQueues().contains(queue)) {
             machine.getInputQueues().add(queue);
         }
 
+        System.out.println("Connected input queue " + queueId + " to machine " + machineId);
+
         // Register machine as observer to the queue
         queue.attach(machine);
-
-        // Optional: track this connection explicitly if using a Connection model
-//        if (connections != null) {
-//            connections.add(new Connection(
-//                    UUID.randomUUID().toString(),
-//                    queue.getId(),
-//                    machine.getId(),
-//                    ConnectionType.INPUT
-//            ));
-//        }
     }
 
 
@@ -136,18 +134,21 @@ public class SimulationService {
         if (machine == null) throw new IllegalArgumentException("Machine not found");
         if (queue == null) throw new IllegalArgumentException("Queue not found");
 
-        if (hasPath(queueId, machineId, new HashSet<>())) {
+      /*  if (hasPath(queueId, machineId, new HashSet<>())) {
             throw new IllegalStateException("This would create a loop");
-        }
+        }*/
         // Add to list if not present
         if (!machine.getOutputQueues().contains(queue)) {
             machine.getOutputQueues().add(queue);
         }
+
+        System.out.println("Connected output queue " + queueId + " to machine " + machineId);
     }
 
     //ConnectOutputQueue (later, figure out whether it's one or more first)
 
     public void startSimulation(int productCount) {
+        System.out.println("Starting simulation");
         if (running || mode != SimulationMode.STOPPED) return;
 
         mode = SimulationMode.LIVE;
@@ -158,19 +159,25 @@ public class SimulationService {
 
         validateConnections();
 
+        System.out.println("validated connections");
+
         // 2. Start InputGenerator thread
         inputGenerator = new InputGenerator(q0, productCount);
         inputThread = new Thread(inputGenerator);
         inputThread.start();
+        System.out.println("started input generator");
 
         // 3. Start all machines threads
         for (Machine m : machines.values()) {
+            m.setRunning(true);
             Thread t = new Thread(m);
             t.start();
         }
+        System.out.println("started replay thread");
 
         // 4. Start snapshot thread
         triggerSnapshot();
+        System.out.println("started snapshot thread");
     }
 
     //stop
@@ -199,11 +206,13 @@ public class SimulationService {
     }
 
 
+    // java
     public synchronized void replay(long intervalT) {
-        if (mode.equals(SimulationMode.LIVE))
+        if (mode.equals(SimulationMode.LIVE)) {
             stopSimulation();
-
-        if (caretaker.getHistory().isEmpty()) {
+        }
+        List<SimulationSnapshot> history = caretaker.getHistory();
+        if (history.isEmpty()) {
             throw new IllegalStateException("No snapshots to replay");
         }
 
@@ -211,24 +220,39 @@ public class SimulationService {
         replaying = true;
 
         replayThread = new Thread(() -> {
-            for (SimulationSnapshot snapshot: caretaker.getHistory()) {
-                if (!replaying) break;
-
-                // SEND SNAPSHOT TO UI
-                publishSnapshot(snapshot);
-
-                try {
-                    Thread.sleep(intervalT);
-                } catch (InterruptedException e) {
-                    break;
+            try {
+                for (SimulationSnapshot snapshot : history) {
+                    if (!replaying || Thread.currentThread().isInterrupted()) {
+                        break;
+                    }
+                    publishSnapshot(snapshot);
+                    try {
+                        Thread.sleep(intervalT);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
                 }
+            } finally {
+                mode = SimulationMode.STOPPED;
+                replaying = false;
             }
-            mode = SimulationMode.STOPPED;
-            replaying = false;
-
-        });
+        }, "ReplayThread");
         replayThread.start();
     }
+
+    public void publishSnapshot(SimulationSnapshot snapshot) {
+        SimStateDTO dto = SimStateMapper.toDTO(snapshot, machines, queues, mode);
+        emitters.removeIf(emitter -> {
+            try {
+                emitter.send(dto);
+                return false;
+            } catch (Exception e) {
+                return true;
+            }
+        });
+    }
+
 
     public synchronized void stopReplay() {
         replaying = false;
@@ -259,23 +283,24 @@ public class SimulationService {
     }
 
     // sse/ send each snapshot to the frontend in real time
-    public void publishSnapshot(SimulationSnapshot snapshot) {
-        SimStateDTO dto = SimStateMapper.toDTO(snapshot, machines, queues, mode);
-
-        synchronized (emitters) {
-            Iterator<SseEmitter> it = emitters.iterator();
-            while (it.hasNext()) {
-                SseEmitter emitter = it.next();
-                try {
-                    emitter.send(dto);
-                } catch (Exception e) {
-                    it.remove();
-                }
-            }
-        }
-    }
+//    public void publishSnapshot(SimulationSnapshot snapshot) {
+//        SimStateDTO dto = SimStateMapper.toDTO(snapshot, machines, queues, mode);
+//
+//        synchronized (emitters) {
+//            Iterator<SseEmitter> it = emitters.iterator();
+//            while (it.hasNext()) {
+//                SseEmitter emitter = it.next();
+//                try {
+//                    emitter.send(dto);
+//                } catch (Exception e) {
+//                    it.remove();
+//                }
+//            }
+//        }
+//    }
 
     public SseEmitter createEmitter() {
+        System.out.println("Creating emitter");
         SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);    // no timeout, the connection stays alive indefinitely
         emitters.add(emitter);
 
@@ -352,7 +377,7 @@ public class SimulationService {
     }
 
 // for cycles
-    private boolean hasPath(String currentId, String targetId, Set<String> visited) {
+ /*   private boolean hasPath(String currentId, String targetId, Set<String> visited) {
 
         if (currentId.equals(targetId)) return true;
 
@@ -383,5 +408,5 @@ public class SimulationService {
         }
 
         return false;
-    }
+    } */
 }
