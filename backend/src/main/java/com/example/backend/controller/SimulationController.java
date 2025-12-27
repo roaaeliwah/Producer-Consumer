@@ -92,13 +92,13 @@ public class SimulationController {
     }
 
     @PostMapping("/simulation/replay")
-    public ResponseEntity<?> replaySimulation(@RequestParam (defaultValue = "200") long intervalT) {
-        simulationService.replay(intervalT);
+    private ResponseEntity<?> replaySimulation() {
+        simulationService.replay();
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/simulation/stopReplay")
-    private ResponseEntity<?> stopReplay(){
+    public ResponseEntity<?> stopReplay(){
         simulationService.stopReplay();
         return ResponseEntity.ok().build();
     }

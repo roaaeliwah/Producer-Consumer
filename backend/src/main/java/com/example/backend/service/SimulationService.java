@@ -206,11 +206,12 @@ public class SimulationService {
     }
 
 
-    // java
-    public synchronized void replay(long intervalT) {
+
+    public synchronized void replay() {
         if (mode.equals(SimulationMode.LIVE)) {
             stopSimulation();
         }
+
         List<SimulationSnapshot> history = caretaker.getHistory();
         if (history.isEmpty()) {
             throw new IllegalStateException("No snapshots to replay");
@@ -221,23 +222,33 @@ public class SimulationService {
 
         replayThread = new Thread(() -> {
             try {
-                for (SimulationSnapshot snapshot : history) {
-                    if (!replaying || Thread.currentThread().isInterrupted()) {
-                        break;
+                SimulationSnapshot previousSnapshot = history.get(0);
+                publishSnapshot(previousSnapshot);
+
+                for (int i = 1; i < history.size(); i++) {
+                    if (!replaying || Thread.currentThread().isInterrupted()) break;
+
+                    SimulationSnapshot currentSnapshot = history.get(i);
+                    long timeDiff = currentSnapshot.getTimestamp() - previousSnapshot.getTimestamp();
+
+                    if (timeDiff > 0) {
+                        try {
+                            Thread.sleep(timeDiff);
+                        } catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                            break;
+                        }
                     }
-                    publishSnapshot(snapshot);
-                    try {
-                        Thread.sleep(intervalT);
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        break;
-                    }
+                    publishSnapshot(currentSnapshot);
+
+                    previousSnapshot = currentSnapshot;
                 }
             } finally {
                 mode = SimulationMode.STOPPED;
                 replaying = false;
             }
         }, "ReplayThread");
+
         replayThread.start();
     }
 

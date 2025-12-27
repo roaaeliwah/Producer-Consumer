@@ -18,7 +18,7 @@ constructor(public simService: SimulationService) {}
     this.simService.setTool(newTool);
   }
   startSimulation(){
-  this.simService.startSimulation(100);
+  this.simService.startSimulation(10);
   }
   stopSimulation(){
   this.simService.stopSimulation();
