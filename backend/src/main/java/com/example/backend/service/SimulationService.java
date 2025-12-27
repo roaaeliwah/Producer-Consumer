@@ -206,11 +206,13 @@ public class SimulationService {
     }
 
 
+    // java
     public synchronized void replay(long intervalT) {
-        if (mode.equals(SimulationMode.LIVE))
+        if (mode.equals(SimulationMode.LIVE)) {
             stopSimulation();
-
-        if (caretaker.getHistory().isEmpty()) {
+        }
+        List<SimulationSnapshot> history = caretaker.getHistory();
+        if (history.isEmpty()) {
             throw new IllegalStateException("No snapshots to replay");
         }
 
@@ -218,24 +220,39 @@ public class SimulationService {
         replaying = true;
 
         replayThread = new Thread(() -> {
-            for (SimulationSnapshot snapshot: caretaker.getHistory()) {
-                if (!replaying) break;
-
-                // SEND SNAPSHOT TO UI
-                publishSnapshot(snapshot);
-
-                try {
-                    Thread.sleep(intervalT);
-                } catch (InterruptedException e) {
-                    break;
+            try {
+                for (SimulationSnapshot snapshot : history) {
+                    if (!replaying || Thread.currentThread().isInterrupted()) {
+                        break;
+                    }
+                    publishSnapshot(snapshot);
+                    try {
+                        Thread.sleep(intervalT);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
                 }
+            } finally {
+                mode = SimulationMode.STOPPED;
+                replaying = false;
             }
-            mode = SimulationMode.STOPPED;
-            replaying = false;
-
-        });
+        }, "ReplayThread");
         replayThread.start();
     }
+
+    public void publishSnapshot(SimulationSnapshot snapshot) {
+        SimStateDTO dto = SimStateMapper.toDTO(snapshot, machines, queues, mode);
+        emitters.removeIf(emitter -> {
+            try {
+                emitter.send(dto);
+                return false;
+            } catch (Exception e) {
+                return true;
+            }
+        });
+    }
+
 
     public synchronized void stopReplay() {
         replaying = false;
@@ -266,21 +283,21 @@ public class SimulationService {
     }
 
     // sse/ send each snapshot to the frontend in real time
-    public void publishSnapshot(SimulationSnapshot snapshot) {
-        SimStateDTO dto = SimStateMapper.toDTO(snapshot, machines, queues, mode);
-
-        synchronized (emitters) {
-            Iterator<SseEmitter> it = emitters.iterator();
-            while (it.hasNext()) {
-                SseEmitter emitter = it.next();
-                try {
-                    emitter.send(dto);
-                } catch (Exception e) {
-                    it.remove();
-                }
-            }
-        }
-    }
+//    public void publishSnapshot(SimulationSnapshot snapshot) {
+//        SimStateDTO dto = SimStateMapper.toDTO(snapshot, machines, queues, mode);
+//
+//        synchronized (emitters) {
+//            Iterator<SseEmitter> it = emitters.iterator();
+//            while (it.hasNext()) {
+//                SseEmitter emitter = it.next();
+//                try {
+//                    emitter.send(dto);
+//                } catch (Exception e) {
+//                    it.remove();
+//                }
+//            }
+//        }
+//    }
 
     public SseEmitter createEmitter() {
         System.out.println("Creating emitter");
