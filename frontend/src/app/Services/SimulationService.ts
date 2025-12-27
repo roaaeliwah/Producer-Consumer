@@ -1,9 +1,9 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import {BehaviorSubject, Subject} from 'rxjs';
+import { BehaviorSubject, Subject } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import { CanvasObject, Connection, MovingProduct } from '../models/simulation';
-import {ServerUpdates} from '../models/Updates';
+import { ServerUpdates } from '../models/Updates';
 @Injectable({
   providedIn: 'root'
 })
@@ -15,7 +15,8 @@ export class SimulationService {
   public object$ = new BehaviorSubject<CanvasObject[]>([]);
   public connections$ = new BehaviorSubject<Connection[]>([]);
   public movingProducts$ = new BehaviorSubject<MovingProduct[]>([]);
-  private animationFrameId:number | null = null;
+  private animationFrameId: number | null = null;
+  private eventSource: EventSource | null = null;
   private idCounter = 0;
   public isRunning = false;
   private _selectedTool$ = new BehaviorSubject<'Q' | 'M' | 'D' | null>(null);
@@ -27,37 +28,37 @@ export class SimulationService {
 
   private readonly API_URL = 'http://localhost:8080/api';
 
-  constructor(private readonly http: HttpClient) {}
-  get objects(){return this.object$.value;}
-  get connections(){return this.connections$.value;}
-  get movingProducts(){return this.movingProducts$.value;}
+  constructor(private readonly http: HttpClient) { }
+  get objects() { return this.object$.value; }
+  get connections() { return this.connections$.value; }
+  get movingProducts() { return this.movingProducts$.value; }
   get selectedTool() { return this._selectedTool$.value; }
   get _isRunning() {
     return this._isRunning$.value;
   }
-  addObject(type:'Q'|'M',x:number, y:number){
-    const newObj:CanvasObject = {
-      id:`${type}${this.idCounter++}`,
+  addObject(type: 'Q' | 'M', x: number, y: number) {
+    const newObj: CanvasObject = {
+      id: `${type}${this.idCounter++}`,
       type,
-      x:x,
-      y:y,
-      productCount:0,
-      color:'#95a5a6',
-      state:'IDEAL',
-      isFlashing:false,
+      x: x,
+      y: y,
+      productCount: 0,
+      color: '#95a5a6',
+      state: 'IDEAL',
+      isFlashing: false,
     };
     this.object$.next([...this.objects, newObj]);
   }
 
-  addConnection(fromId:string, toId:string){
-    if(this.wouldCreateLoop(fromId,toId)) return false;
+  addConnection(fromId: string, toId: string) {
+    if (this.wouldCreateLoop(fromId, toId)) return false;
 
-    const newConn:Connection = {fromId,toId};
+    const newConn: Connection = { fromId, toId };
     this.connections$.next([...this.connections, newConn]);
     return true;
   }
 
-  deleteObject(id:string){
+  deleteObject(id: string) {
 
     const filteredObjs = this.objects.filter(o => o.id !== id);
     const filteredConnections = this.connections.filter(c => c.fromId !== id && c.toId !== id);
@@ -65,11 +66,11 @@ export class SimulationService {
     this.connections$.next(filteredConnections);
   }
 
-startSimulation(productCount: number) {
+  startSimulation(productCount: number) {
     if (this.isRunning) return;
     const objectPayload = {
-      queues: this.objects.filter(o => o.type === 'Q').map(q => q.id ),
-      machines: this.objects.filter(o => o.type === 'M').map(m =>  m.id )
+      queues: this.objects.filter(o => o.type === 'Q').map(q => q.id),
+      machines: this.objects.filter(o => o.type === 'M').map(m => m.id)
     };
     const connectionPayload = this.connections.map(conn => {
       const source = this.objects.find(o => o.id === conn.fromId);
@@ -99,6 +100,7 @@ startSimulation(productCount: number) {
       next: () => {
         console.log("Simulation running");
         this.isRunning = true;
+        this._isRunning$.next(true);
         this.animate();
         this.connectToSse();
       },
@@ -106,14 +108,19 @@ startSimulation(productCount: number) {
         console.error("Error:", err);
         alert("Failed to start simulation");
         this.isRunning = false;
+        this._isRunning$.next(false);
       }
     });
-    this._isRunning$.next(true);
   }
 
   private connectToSse() {
     // Create the connection to the streaming endpoint
+    if (this.eventSource) {
+      this.eventSource.close();
+    }
+
     const eventSource = new EventSource(`${this.API_URL}/simulation/stream`);
+    this.eventSource = eventSource;
 
     eventSource.onmessage = (event) => {
       try {
@@ -125,11 +132,28 @@ startSimulation(productCount: number) {
       }
     };
 
+    eventSource.addEventListener('simulationStopped', () => {
+      this.isRunning = false;
+      this._isRunning$.next(false);
+      if (this.animationFrameId) {
+        cancelAnimationFrame(this.animationFrameId);
+        this.animationFrameId = null;
+      }
+      eventSource.close();
+      if (this.eventSource === eventSource) {
+        this.eventSource = null;
+      }
+    });
+
     eventSource.onerror = (error) => {
       console.error("SSE Connection Error:", error);
       // If the connection drops, we stop the local animation
       this.isRunning = false;
+      this._isRunning$.next(false);
       eventSource.close();
+      if (this.eventSource === eventSource) {
+        this.eventSource = null;
+      }
     };
   }
 
@@ -197,21 +221,21 @@ startSimulation(productCount: number) {
       this.object$.next([...this.objects]); // Redraw OFF
     }, 400);
   }
-  private spawnProduct(color:string, fromId:string,toId:string){
-    const products = [...this.movingProducts,{color,fromId,toId,progress:0}];
+  private spawnProduct(color: string, fromId: string, toId: string) {
+    const products = [...this.movingProducts, { color, fromId, toId, progress: 0 }];
     this.movingProducts$.next(products);
   }
 
-   wouldCreateLoop(startId:string, targetId:string):boolean{
+  wouldCreateLoop(startId: string, targetId: string): boolean {
     const visited = new Set<string>();
     const queue = [targetId];
-    while(queue.length>0){
+    while (queue.length > 0) {
       const current = queue.shift()!;
-      if(current === startId) return true;
-      if(!visited.has(current)){
+      if (current === startId) return true;
+      if (!visited.has(current)) {
         visited.add(current);
         const neighbors = this.connections.filter(c => c.fromId === current).map(c => c.toId);
-        queue.push(... neighbors);
+        queue.push(...neighbors);
       }
     }
     return false;
@@ -246,40 +270,55 @@ startSimulation(productCount: number) {
   }
 
 
-  public stopSimulation(){
+  public stopSimulation() {
     this.http.post(`${this.API_URL}/simulation/stop`, {}).subscribe({
       next: (data: any) => {
         this.isRunning = false;
-        if(this.animationFrameId){
+        if (this.animationFrameId) {
           cancelAnimationFrame(this.animationFrameId);
         }
+        if (this.eventSource) {
+          this.eventSource.close();
+          this.eventSource = null;
+        }
       },
-      error: (err:any) => {
+      error: (err: any) => {
         console.log("failed to stop");
       }
     })
     this._isRunning$.next(false);
   }
-  public replaySimulation(){
+  public replaySimulation() {
     this.stopSimulation();
 
-    const resetObjs = this.objects.map(obj =>({
+    const resetObjs = this.objects.map(obj => ({
       ...obj,
-        productCount:0,
-        color:'#95a5a6',
-      state:'IDLE'
+      productCount: 0,
+      color: '#95a5a6',
+      state: 'IDLE'
     }));
     this.object$.next(resetObjs);
     this.movingProducts$.next([]);
-    this.http.post(`${this.API_URL}/simulation/replay`, {}).subscribe({})
-    this._isRunning$.next(true);
+    this.http.post(`${this.API_URL}/simulation/replay`, {}).subscribe({
+      next: () => {
+        this.isRunning = true;
+        this._isRunning$.next(true);
+        this.animate();
+        this.connectToSse();
+      },
+      error: (err) => {
+        console.error("Failed to replay simulation", err);
+        this.isRunning = false;
+        this._isRunning$.next(false);
+      }
+    });
   }
 
-  public ClearAll(){
+  public ClearAll() {
     this.object$.next([]);
     this.connections$.next([]);
     this.movingProducts$.next([]);
-    this.idCounter =0;
+    this.idCounter = 0;
     this.http.post(`${this.API_URL}/simulation/reset`, {}).subscribe({})
     this.clearRequested.next();
   }

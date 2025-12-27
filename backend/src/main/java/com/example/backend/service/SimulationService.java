@@ -3,6 +3,7 @@ package com.example.backend.service;
 import com.example.backend.InputGenerator;
 import com.example.backend.dto.SimStateDTO;
 import com.example.backend.mapper.SimStateMapper;
+import com.example.backend.model.MachineState;
 import com.example.backend.model.Product;
 import com.example.backend.snapshot.SimulationCareTaker;
 import com.example.backend.snapshot.SimulationSnapshot;
@@ -145,8 +146,6 @@ public class SimulationService {
         System.out.println("Connected output queue " + queueId + " to machine " + machineId);
     }
 
-    //ConnectOutputQueue (later, figure out whether it's one or more first)
-
     public void startSimulation(int productCount) {
         System.out.println("Starting simulation");
         if (running || mode != SimulationMode.STOPPED) return;
@@ -154,8 +153,13 @@ public class SimulationService {
         mode = SimulationMode.LIVE;
         running = true;
 
+        if (allQueues.isEmpty()) {
+            throw new IllegalStateException("No queues configured.");
+        }
+
         // 1. Get Q0 (first queue)
         SimQueue q0 = allQueues.get(0); // assume first queue is Q0
+        SimQueue lastQueue = allQueues.get(allQueues.size() - 1);
 
         validateConnections();
 
@@ -178,11 +182,50 @@ public class SimulationService {
         // 4. Start snapshot thread
         triggerSnapshot();
         System.out.println("started snapshot thread");
+
+        // Start monitoring thread to auto-stop when done
+        Thread monitorThread = new Thread(() -> {
+            try {
+                inputThread.join(); // Wait for input generator to finish
+                Thread.sleep(2000); // Give machines time to process remaining products
+
+                // Check if all queues are empty and machines are idle
+                while (running) {
+                    if (lastQueue.size() == productCount) {
+                        stopSimulation();
+                        break;
+                    }
+
+                    boolean nonLastEmpty = true;
+                    for (SimQueue queue : allQueues) {
+                        if (queue == lastQueue) continue;
+                        if (queue.size() != 0) {
+                            nonLastEmpty = false;
+                            break;
+                        }
+                    }
+                    boolean allEmpty = nonLastEmpty && lastQueue.size() == productCount;
+
+                    boolean allIdle = machines.values().stream()
+                            .allMatch(m -> m.getState() == MachineState.IDLE);
+
+                    if (allEmpty && allIdle) {
+                        stopSimulation();
+                        break;
+                    }
+                    Thread.sleep(500);
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        });
+        monitorThread.start();
     }
 
     //stop
 
     public void stopSimulation() {
+        System.out.println("stopped simulation1");
         if (!running || mode != SimulationMode.LIVE) return; // simulation already stopped
 
         running = false;
@@ -203,6 +246,10 @@ public class SimulationService {
         
         // Record final snapshot
         triggerSnapshot();
+
+        notifySimulationStopped(); // inform clients
+
+        System.out.println("stopped simulation");
     }
 
 
@@ -243,6 +290,15 @@ public class SimulationService {
 
                     previousSnapshot = currentSnapshot;
                 }
+                // If replay naturally reaches the end, stop it explicitly
+                if (replaying) {
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                    }
+                    stopReplay();
+                }
             } finally {
                 mode = SimulationMode.STOPPED;
                 replaying = false;
@@ -273,6 +329,7 @@ public class SimulationService {
         }
 
         mode = SimulationMode.STOPPED;
+        notifySimulationStopped();
     }
 
     public synchronized void reset () {
@@ -290,25 +347,13 @@ public class SimulationService {
             m.reset();
         }
 
+        queues.clear();
+        machines.clear();
+        allQueues.clear();
+        allMachines.clear();
+
         caretaker.clear();
     }
-
-    // sse/ send each snapshot to the frontend in real time
-//    public void publishSnapshot(SimulationSnapshot snapshot) {
-//        SimStateDTO dto = SimStateMapper.toDTO(snapshot, machines, queues, mode);
-//
-//        synchronized (emitters) {
-//            Iterator<SseEmitter> it = emitters.iterator();
-//            while (it.hasNext()) {
-//                SseEmitter emitter = it.next();
-//                try {
-//                    emitter.send(dto);
-//                } catch (Exception e) {
-//                    it.remove();
-//                }
-//            }
-//        }
-//    }
 
     public SseEmitter createEmitter() {
         System.out.println("Creating emitter");
@@ -320,6 +365,19 @@ public class SimulationService {
         emitter.onError((e) -> emitters.remove(emitter));
 
         return emitter;
+    }
+
+    private void notifySimulationStopped() {
+        emitters.removeIf(emitter -> {
+            try {
+                emitter.send(SseEmitter.event()
+                        .name("simulationStopped")
+                        .data("STOPPED"));
+                return false;
+            } catch (Exception e) {
+                return true;
+            }
+        });
     }
 
 
@@ -387,37 +445,4 @@ public class SimulationService {
         }
     }
 
-// for cycles
- /*   private boolean hasPath(String currentId, String targetId, Set<String> visited) {
-
-        if (currentId.equals(targetId)) return true;
-
-        if (visited.contains(currentId)) return false;
-        visited.add(currentId);
-
-        // Current Node is a MACHINE
-        if (machines.containsKey(currentId)) {
-            Machine machine = machines.get(currentId);
-            for (SimQueue outQ : machine.getOutputQueues()) {
-                if (hasPath(outQ.getId(), targetId, visited)) {
-                    return true;
-                }
-            }
-        }
-        // Current Node is a QUEUE
-        else if (queues.containsKey(currentId)) {
-            for (Machine m : machines.values()) {
-                boolean consumesFromThisQueue = m.getInputQueues().stream()
-                        .anyMatch(q -> q.getId().equals(currentId));
-
-                if (consumesFromThisQueue) {
-                    if (hasPath(m.getId(), targetId, visited)) {
-                        return true;
-                    }
-                }
-            }
-        }
-
-        return false;
-    } */
 }
