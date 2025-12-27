@@ -133,60 +133,55 @@ startSimulation(productCount: number) {
     };
   }
 
-  private handleServerupdate(serverState: any) {
-    const currentObjs = [...this.objects];
+ private handleServerupdate(serverState: any) {
+     const currentObjs = [...this.objects];
 
-    if (serverState.machines) {
-      serverState.machines.forEach((m: any) => {
-        const obj = currentObjs.find(o => o.id === m.id);
-        if (obj) {
-          console.log(obj);
-          // 1. TRIGGER: Animation from Queue to Machine
-          if (obj.state === 'IDLE' && m.state === 'BUSY') {
-            const sourceId = m.inputQueueIds?.[0];
-            if (sourceId) {
-              this.spawnProduct(m.currentColor, sourceId, m.id);
-            }
-          }
+     if (serverState.machines) {
+       serverState.machines.forEach((m: any) => {
+         const obj = currentObjs.find(o => o.id === m.id);
+         if (obj) {
 
-          // 2. TRIGGER: Animation from Machine to Queue (Output)
-          if (obj.state === 'BUSY' && m.state === 'FINISHED') {
-            const targetQueueId = m.outputQueueIds?.[0];
-            if (targetQueueId) {
-              this.spawnProduct(m.currentColor, m.id, targetQueueId);
-            }
-            this.triggerFlash(obj); // Flash when work is done
-          }
+           if (obj.state === 'IDLE' && m.state === 'BUSY') {
+             const sourceId = m.inputQueueIds?.[0];
+             if (sourceId) this.spawnProduct(m.currentColor, sourceId, m.id);
+           }
+           if (obj.state === 'BUSY' && m.state === 'FINISHED') {
+             const targetQueueId = m.outputQueueIds?.[0];
+             if (targetQueueId) this.spawnProduct(m.currentColor, m.id, targetQueueId);
+             this.triggerFlash(obj);
+           }
+           if (m.state === 'BUSY' || m.state === 'FINISHED') {
+              // apply to the machine
+              if (m.currentColor && m.currentColor !== 'GRAY') {
+                  obj.color = m.currentColor;
+              }
 
-          // 3. COLOR LOGIC: This is what fixes the "Snapshot" reset
-          // Check if there is a product currently moving toward this machine
-          const isProductIncoming = this.movingProducts.some(p => p.toId === m.id);
+              const productInFlight = this.movingProducts.find(p => p.toId === m.id);
+              if (productInFlight && m.currentColor) {
+                  productInFlight.color = m.currentColor;
+              }
+           } else {
 
-          if (m.state === 'IDLE' && !isProductIncoming) {
-            // Only turn Gray if it's truly idle and no dot is about to hit it
-            obj.color = '#95a5a6';
-          } else if (m.state === 'BUSY' && m.currentColor?.startsWith('#')) {
-            // If the machine is busy and we have a real color, we can update it
-            // OR you can keep it as is and let the animate() hit handle it
-            const productInFlight = this.movingProducts.find(p => p.toId === m.id);
-            if (productInFlight) productInFlight.color = m.currentColor;
-          }
+              const isProductIncoming = this.movingProducts.some(p => p.toId === m.id);
+              if (!isProductIncoming) {
+                  obj.color = '#95a5a6';
+              }
+           }
 
-          obj.state = m.state;
-        }
-      });
-    }
+           obj.state = m.state;
+         }
+       });
+     }
 
-    // Update Queues
-    if (serverState.queues) {
-      serverState.queues.forEach((q: any) => {
-        const obj = currentObjs.find(o => o.id === q.id);
-        if (obj) obj.productCount = q.size;
-      });
-    }
+     if (serverState.queues) {
+       serverState.queues.forEach((q: any) => {
+         const obj = currentObjs.find(o => o.id === q.id);
+         if (obj) obj.productCount = q.size;
+       });
+     }
 
-    this.object$.next(currentObjs);
-  }
+     this.object$.next(currentObjs);
+   }
 
   private triggerFlash(obj: any) {
     obj.isFlashing = true;
@@ -273,6 +268,7 @@ startSimulation(productCount: number) {
     this.movingProducts$.next([]);
     this.http.post(`${this.API_URL}/simulation/replay`, {}).subscribe({})
     this._isRunning$.next(true);
+    this.animate()
   }
 
   public ClearAll(){
