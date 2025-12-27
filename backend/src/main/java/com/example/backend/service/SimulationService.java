@@ -23,16 +23,13 @@ public class SimulationService {
 
     private SimulationMode mode = SimulationMode.STOPPED;
     // Queues by ID (all queues both in and out)
-    private Map<String, SimQueue> queues = new ConcurrentHashMap<>();       // ConcurrentHashMap >> thread-safe
+    private Map<String, SimQueue> queues = new ConcurrentHashMap<>();
 
     // Machines by ID
     private Map<String, Machine> machines = new ConcurrentHashMap<>();
 
     // Simulation state
     private volatile boolean running = false;
-
-    // Snapshots history
-//    private List<SimulationSnapshot> snapshots = new ArrayList<>();   // use caretaker instead
 
     //for recording snapshots
     private final List<Machine> allMachines = Collections.synchronizedList(new ArrayList<>());
@@ -88,19 +85,6 @@ public class SimulationService {
         return machine.getId();
     }
 
-//    public void deleteQueue(String queueId) {
-//        if (running) return;
-//        System.out.println("Removing queue with ID " + queueId);
-//        queues.remove(queueId);
-//    }
-//
-//    public void deleteMachine(String machineId) {
-//        if (running) return;
-//        System.out.println("Removing machine with ID " + machineId);
-//        machines.remove(machineId);
-//
-//    }
-
     public void connectInputQueue(String machineId, String queueId) {
         if (running) return; // prevent changes while simulation is running
 
@@ -131,9 +115,6 @@ public class SimulationService {
         if (machine == null) throw new IllegalArgumentException("Machine not found");
         if (queue == null) throw new IllegalArgumentException("Queue not found");
 
-      /*  if (hasPath(queueId, machineId, new HashSet<>())) {
-            throw new IllegalStateException("This would create a loop");
-        }*/
         // Add to list if not present
         if (!machine.getOutputQueues().contains(queue)) {
             machine.getOutputQueues().add(queue);
@@ -239,7 +220,7 @@ public class SimulationService {
                 m.getLock().notify(); // wake up any machine waiting on empty input queues
             }
         }
-        
+
         // Record final snapshot
         triggerSnapshot();
 
@@ -407,7 +388,7 @@ public class SimulationService {
                 throw new IllegalStateException
                         ("Machine " + machine.getId() + " has no input queues");
             }
-            if (machine.getOutputQueues().isEmpty()) { // change here
+            if (machine.getOutputQueues().isEmpty()) {
                 throw new IllegalStateException
                         ("Machine " + machine.getId() + " has no output queues");
             }

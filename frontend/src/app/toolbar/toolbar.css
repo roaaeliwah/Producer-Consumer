@@ -1,12 +1,13 @@
 @media (prefers-color-scheme: dark) {
-  body{
+  body {
     background-color: #282c34;
     color: white;
   }
 }
-.top-container{
-  display:flex;
-  justify-content: space-evenly;
+
+.top-container {
+  display: flex;
+  justify-content: center;
   align-items: center;
   flex-direction: row;
   min-height: 50px;
@@ -17,14 +18,16 @@
   left: 50%;
   transform: translateX(-50%);
   width: auto;
-  min-width: 30vw;
+  padding: 0 16px;
   z-index: 100;
   border-radius: 50px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   gap: 10px;
+  flex-wrap: wrap;
 }
-button {
-  margin: 0 5px; /* Even spacing between tools */
+
+.top-container > button {
+  margin: 0 5px;
   border: none;
   background: #e2e2e2;
   border-radius: 50%;
@@ -34,48 +37,115 @@ button {
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
-  padding:10px;
+  padding: 10px;
   cursor: pointer;
 }
-button img {
+
+.top-container > button img {
   width: 24px;
   height: 24px;
   background: transparent;
   padding: 0;
 }
-button:hover {
+
+.top-container > button:hover {
   background: #007bff;
   transform: translateY(-2px);
 }
-button:active{
-  transform:scale(1.05);
+
+.top-container > button:active {
+  transform: scale(1.05);
 }
-.End:hover{
-  box-shadow: 1px 1px 8px #8a0707;
-  background: #8a0707;
-}
-.Start:hover{
-  box-shadow: 0 0px 10px #226422;
-  background: #226422;
-}
-button.active{
+
+.top-container > button.active {
   background: #007bff;
-  border:1px solid white;
+  border: 1px solid white;
   transform: scale(1.1);
 }
-.Clear:hover{
-  background: #e2e2e2;
-  box-shadow: 2px 2px 8px #ff0505;
-}
-img{
-  width:30px;
-  height:30px;
-}
-button.disabled{
+
+.top-container > button.disabled {
   background: #e2e2e2;
   transform: scale(0.9);
 }
-.error-banner{
+
+.End:hover {
+  box-shadow: 1px 1px 8px #8a0707;
+  background: #8a0707;
+}
+
+.Start:hover {
+  box-shadow: 0 0px 10px #226422;
+  background: #226422;
+}
+
+.Clear:hover {
+  background: #e2e2e2;
+  box-shadow: 2px 2px 8px #ff0505;
+}
+
+.top-container img {
+  width: 30px;
+  height: 30px;
+}
+
+.product-counter {
+  margin: 90px auto 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  color: #f1f1f1;
+  font-size: 1rem;
+  backdrop-filter: blur(10px);
+  background: rgba(24, 24, 24, 0.85);
+  padding: 10px 18px;
+  border-radius: 999px;
+  width: fit-content;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+}
+
+.product-label {
+  white-space: nowrap;
+  font-weight: 500;
+  color: #dcdcdc;
+}
+
+.product-value {
+  min-width: 36px;
+  text-align: center;
+  font-weight: 700;
+  color: #2ecc71;
+}
+
+.product-adjust {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+  padding: 0;
+  margin: 0;
+  line-height: 1;
+}
+
+.product-adjust:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.product-adjust:hover:not(:disabled) {
+  background: rgba(46, 204, 113, 0.7);
+  transform: translateY(-2px);
+}
+
+.error-banner {
   position: absolute;
   top: 90px;
   left: 50%;
@@ -85,7 +155,7 @@ button.disabled{
   border-radius: 8px;
   background: rgba(192, 57, 43, 0.9);
   color: #fff;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.2);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
   backdrop-filter: blur(6px);
   font-size: 0.95rem;
   text-align: center;

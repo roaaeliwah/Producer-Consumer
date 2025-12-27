@@ -48,3 +48,23 @@
   *ngIf="(simService.errorMessage$ | async) as error">
   {{ error }}
 </div>
+<div
+  class="product-counter"
+  *ngIf="(simService.productCount$ | async) as productCount">
+  <button
+    class="product-adjust"
+    type="button"
+    (click)="decrementProducts()"
+    [disabled]="(simService.isRunning$ | async) || productCount <= 1">
+    -
+  </button>
+  <span class="product-label">Number of products =</span>
+  <span class="product-value">{{ productCount }}</span>
+  <button
+    class="product-adjust"
+    type="button"
+    (click)="incrementProducts()"
+    [disabled]="(simService.isRunning$ | async)">
+    +
+  </button>
+</div>

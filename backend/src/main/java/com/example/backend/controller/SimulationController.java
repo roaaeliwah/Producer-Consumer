@@ -102,15 +102,12 @@ public class SimulationController {
         simulationService.stopReplay();
         return ResponseEntity.ok().build();
     }
-
-
+    
     @PostMapping("/simulation/reset")
     public ResponseEntity<?> resetSimulation() {
         simulationService.reset();
         return ResponseEntity.ok().build();
     }
-
-    // Live Updates / Polling
 
     @GetMapping("/simulation/state")
     public ResponseEntity<SimStateDTO> getSimulationState() {

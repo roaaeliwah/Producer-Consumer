@@ -19,6 +19,8 @@ export class SimulationService {
   private eventSource: EventSource | null = null;
   private errorMessageSubject = new BehaviorSubject<string | null>(null);
   public errorMessage$ = this.errorMessageSubject.asObservable();
+  private productCountSubject = new BehaviorSubject<number>(10);
+  public productCount$ = this.productCountSubject.asObservable();
   private idCounter = 0;
   public isRunning = false;
   private _selectedTool$ = new BehaviorSubject<'Q' | 'M' | 'D' | null>(null);
@@ -37,6 +39,9 @@ export class SimulationService {
   get selectedTool() { return this._selectedTool$.value; }
   get _isRunning() {
     return this._isRunning$.value;
+  }
+  get productCount() {
+    return this.productCountSubject.value;
   }
   addObject(type: 'Q' | 'M', x: number, y: number) {
     const newObj: CanvasObject = {
@@ -68,8 +73,9 @@ export class SimulationService {
     this.connections$.next(filteredConnections);
   }
 
-  startSimulation(productCount: number) {
+  startSimulation(productCount?: number) {
     if (this.isRunning) return;
+    const products = productCount ?? this.productCount;
     const objectPayload = {
       queues: this.objects.filter(o => o.type === 'Q').map(q => q.id),
       machines: this.objects.filter(o => o.type === 'M').map(m => m.id)
@@ -95,7 +101,7 @@ export class SimulationService {
 
       switchMap(() => {
         console.log("Graph built");
-        return this.http.post(`${this.API_URL}/simulation/start?productCount=${productCount}`, {});
+        return this.http.post(`${this.API_URL}/simulation/start?productCount=${products}`, {});
       })
 
     ).subscribe({
@@ -333,6 +339,12 @@ export class SimulationService {
     this.http.post(`${this.API_URL}/simulation/reset`, {}).subscribe({})
     this.clearRequested.next();
     this.updateError(null);
+    this.productCountSubject.next(10);
+  }
+
+  public adjustProductCount(delta: number) {
+    const nextValue = Math.max(1, this.productCount + delta);
+    this.productCountSubject.next(nextValue);
   }
 
   private updateError(message: string | null) {

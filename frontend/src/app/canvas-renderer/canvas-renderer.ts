@@ -1,4 +1,5 @@
 import {Component, HostListener,AfterViewInit,ViewChild,ElementRef} from '@angular/core';
+import {AsyncPipe, NgIf} from '@angular/common';
 import {SimulationService} from '../Services/SimulationService';
 import {CanvasObject} from '../models/simulation';
 import {HttpClient} from '@angular/common/http';
@@ -6,7 +7,7 @@ import {HttpClient} from '@angular/common/http';
 @Component({
   selector: 'app-canvas-renderer',
   standalone: true,
-  imports: [],
+  imports: [AsyncPipe, NgIf],
   templateUrl: './canvas-renderer.html',
   styleUrl: './canvas-renderer.css',
 })

@@ -5,4 +5,7 @@
           (mouseup)="onMouseUp($event)"
           id="MyCanvas">
   </canvas>
+  <div class="product-overlay" *ngIf="(simService.productCount$ | async) as count">
+    Number of products = {{ count }}
+  </div>
 </div>
