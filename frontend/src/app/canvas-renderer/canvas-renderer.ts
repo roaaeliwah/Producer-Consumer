@@ -1,6 +1,7 @@
 import {Component, HostListener,AfterViewInit,ViewChild,ElementRef} from '@angular/core';
 import {SimulationService} from '../Services/SimulationService';
 import {CanvasObject} from '../models/simulation';
+import {HttpClient} from '@angular/common/http';
 
 @Component({
   selector: 'app-canvas-renderer',
@@ -20,7 +21,8 @@ selectedObject:string |null = null;
   isConnecting = false;
   firstSelectedNode: any = null;
   mousePos = { x: 0, y: 0 };
-constructor(public simService:SimulationService) {}
+
+constructor(public simService:SimulationService, private http:HttpClient) {}
   @HostListener('window:resize')
   onResize() {
     this.resizeCanvas();
@@ -29,9 +31,14 @@ constructor(public simService:SimulationService) {}
   ngAfterViewInit(): void {
   this.initCanvas();
   this.loadAssets();
+
   this.simService.object$.subscribe(() => this.drawAll());
   this.simService.connections$.subscribe(() => this.drawAll());
   this.simService.movingProducts$.subscribe(() => this.drawAll());
+  this.simService.clearRequested$.subscribe(() => {
+    this.Clear()
+  });
+
   this.simService.selectedTool$.subscribe(tool => {
     const canvas = this.canvasRef.nativeElement;
     if (tool === 'D') canvas.style.cursor = 'no-drop';
@@ -205,21 +212,38 @@ constructor(public simService:SimulationService) {}
     this.ctx!.fillText(productCount.toString(),badgeX,badgeY);
     this.drawPorts(obj.x,obj.y);
   }
-  drawMachine(obj:CanvasObject ) {
+  drawMachine(obj: any) {
     const ctx = this.ctx!;
-    const {x,y} = obj;
+    const { x, y, color, isFlashing } = obj;
+
+    // 1. Draw Flash
+    if (isFlashing) {
+      ctx.beginPath();
+      ctx.arc(x, y, 45, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+      ctx.fill();
+    }
+
+    // 2. Draw Glow (This makes dark backend colors visible)
     ctx.save();
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = color || '#95a5a6';
+
+    // 3. Draw Body
     ctx.beginPath();
-    ctx.arc(x, y, 30, 0, Math.PI*2);
+    ctx.arc(x, y, 30, 0, Math.PI * 2);
     ctx.fillStyle = obj.color || '#95a5a6';
     ctx.fill();
+    ctx.restore();
+
+    // 4. Draw Border
     ctx.strokeStyle = 'white';
     ctx.lineWidth = 3;
     ctx.stroke();
-    if(this.machineIcon.complete){
-      ctx.drawImage(this.machineIcon, x-15, y-15, 30, 30);
+
+    if (this.machineIcon.complete) {
+      ctx.drawImage(this.machineIcon, x - 15, y - 15, 30, 30);
     }
-    ctx.restore();
   }
   drawArrow(fromX: number, fromY: number, toX: number, toY: number, color: string = 'white'){
     const headLength =12;
@@ -287,7 +311,7 @@ constructor(public simService:SimulationService) {}
     return prots.find(p => Math.hypot(p.x -x , p.y - y) < 18);
   }
 
-   finishConnection(clickedObj:CanvasObject){
+  finishConnection(clickedObj:CanvasObject){
     if(!this.firstSelectedNode) return false;
     const sameNode = this.firstSelectedNode.id == clickedObj.id;
     const sametype = this.firstSelectedNode.type == clickedObj.type;
@@ -306,12 +330,10 @@ constructor(public simService:SimulationService) {}
   }
   Clear(){
     if(!this.ctx) return;
-    const canvas = this.canvasRef.nativeElement;
-    this.ctx.clearRect(0, 0, canvas.width, canvas.height);
+    this.clearPixels();
     this.simService.object$.next([]);
     this.simService.connections$.next([]);
     this.simService.movingProducts$.next([]);
-
   }
   private clearPixels() {
     if (!this.ctx) return;

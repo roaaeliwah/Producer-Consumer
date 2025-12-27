@@ -4,7 +4,7 @@
     class="Q"
     (click)="selectTool('Q')"
     [class.active]="simService.selectedTool === 'Q'"
-    [disabled]="isRunning">
+    [disabled]="(simService.isRunning$ | async)">
     <img src="assets/build-queue-svgrepo-com.svg" alt="Q">
   </button>
   <button
@@ -12,31 +12,34 @@
     class="M"
     (click)="selectTool('M')"
     [class.active]="simService.selectedTool === 'M'"
-    [disabled]="isRunning">
+    [disabled]="(simService.isRunning$ | async)">
     <img src="assets/machine-learning-solid-svgrepo-com.svg">
   </button>
   <button (click)="selectTool('D')"
           [class.active]="simService.selectedTool === 'D'"
+          [disabled]="(simService.isRunning$ | async)"
           style="background-color: #e74c3c; color: white;">
-    🗑️ Delete
+    🗑️
   </button>
   <button class="replay"
-          [disabled]="isRunning"
+          [disabled]="(simService.isRunning$ | async)"
           (click)="replaySimulation()">
     <img src="assets/replay-svgrepo-com.svg">
   </button>
   <button class="End"
-          (click)="stopSimulation()">
+          (click)="stopSimulation()"
+          [disabled]="!(simService.isRunning$ | async)">
+
     <img src="assets/stop-svgrepo-com.svg">
   </button>
   <button class="Start"
           (click)="startSimulation()"
-          [disabled]="isRunning">
+          [disabled]="(simService.isRunning$ | async)">
     <img src="assets/mini-arrow-start-svgrepo-com.svg">
   </button>
   <button class="Clear"
           (click)="Clear()"
-          [disabled]="isRunning">
-    🧹 Clear All
+          [disabled]="(simService.isRunning$ | async)">
+    🧹
   </button>
 </div>

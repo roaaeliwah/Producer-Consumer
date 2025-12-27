@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject } from 'rxjs';
+import {BehaviorSubject, Subject} from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import { CanvasObject, Connection, MovingProduct } from '../models/simulation';
 import {ServerUpdates} from '../models/Updates';
@@ -8,6 +8,10 @@ import {ServerUpdates} from '../models/Updates';
   providedIn: 'root'
 })
 export class SimulationService {
+  private _isRunning$ = new BehaviorSubject<boolean>(false);
+  public isRunning$ = this._isRunning$.asObservable();
+  private clearRequested = new Subject<void>();
+  public clearRequested$ = this.clearRequested.asObservable();
   public object$ = new BehaviorSubject<CanvasObject[]>([]);
   public connections$ = new BehaviorSubject<Connection[]>([]);
   public movingProducts$ = new BehaviorSubject<MovingProduct[]>([]);
@@ -28,6 +32,9 @@ export class SimulationService {
   get connections(){return this.connections$.value;}
   get movingProducts(){return this.movingProducts$.value;}
   get selectedTool() { return this._selectedTool$.value; }
+  get _isRunning() {
+    return this._isRunning$.value;
+  }
   addObject(type:'Q'|'M',x:number, y:number){
     const newObj:CanvasObject = {
       id:`${type}${this.idCounter++}`,
@@ -35,7 +42,9 @@ export class SimulationService {
       x:x,
       y:y,
       productCount:0,
-      color:'#95a5a6'
+      color:'#95a5a6',
+      state:'IDEAL',
+      isFlashing:false,
     };
     this.object$.next([...this.objects, newObj]);
   }
@@ -56,25 +65,11 @@ export class SimulationService {
     this.connections$.next(filteredConnections);
   }
 
-  /*startSimulation(){
-    if(this.isRunning) return;
-    this.isRunning = true;
-    this.animate();
-    const eventSource = new EventSource('http://localhost:8080/api/simulation');
-    eventSource.onmessage = (event) => {
-      const updates = JSON.parse(event.data);
-      this.handleServerupdate(updates);
-    };
-    eventSource.onerror = (event) => {
-      eventSource.close();
-      this.isRunning = false;
-    }
-  }*/
 startSimulation(productCount: number) {
     if (this.isRunning) return;
     const objectPayload = {
-      queues: this.objects.filter(o => o.type === 'Q').map(q => ({ id: q.id })),
-      machines: this.objects.filter(o => o.type === 'M').map(m => ({ id: m.id }))
+      queues: this.objects.filter(o => o.type === 'Q').map(q => q.id ),
+      machines: this.objects.filter(o => o.type === 'M').map(m =>  m.id )
     };
     const connectionPayload = this.connections.map(conn => {
       const source = this.objects.find(o => o.id === conn.fromId);
@@ -113,23 +108,95 @@ startSimulation(productCount: number) {
         this.isRunning = false;
       }
     });
+    this._isRunning$.next(true);
   }
 
-  private handleServerupdate(updates:ServerUpdates[]){
-    const currentObjs = [...this.objects];
-    updates.forEach(update => {
-      const obj = currentObjs.find(o => o.id === update.id);
-      if(obj){
-        obj.color = update.color;
-        obj.productCount = update.productCount;
-        if(update.isDispatching && update.fromQueueId){
-          this.spawnProduct(update.productColor!, update.fromQueueId, obj.id);
-        }
+  private connectToSse() {
+    // Create the connection to the streaming endpoint
+    const eventSource = new EventSource(`${this.API_URL}/simulation/stream`);
+
+    eventSource.onmessage = (event) => {
+      try {
+        // Parse the incoming JSON string into an array of ServerUpdates
+        const rawData = JSON.parse(event.data);
+        this.handleServerupdate(rawData);
+      } catch (err) {
+        console.error("Failed to parse SSE message:", err);
       }
-    });
+    };
+
+    eventSource.onerror = (error) => {
+      console.error("SSE Connection Error:", error);
+      // If the connection drops, we stop the local animation
+      this.isRunning = false;
+      eventSource.close();
+    };
+  }
+
+  private handleServerupdate(serverState: any) {
+    const currentObjs = [...this.objects];
+
+    if (serverState.machines) {
+      serverState.machines.forEach((m: any) => {
+        const obj = currentObjs.find(o => o.id === m.id);
+        if (obj) {
+          console.log(obj);
+          // 1. TRIGGER: Animation from Queue to Machine
+          if (obj.state === 'IDLE' && m.state === 'BUSY') {
+            const sourceId = m.inputQueueIds?.[0];
+            if (sourceId) {
+              this.spawnProduct(m.currentColor, sourceId, m.id);
+            }
+          }
+
+          // 2. TRIGGER: Animation from Machine to Queue (Output)
+          if (obj.state === 'BUSY' && m.state === 'FINISHED') {
+            const targetQueueId = m.outputQueueIds?.[0];
+            if (targetQueueId) {
+              this.spawnProduct(m.currentColor, m.id, targetQueueId);
+            }
+            this.triggerFlash(obj); // Flash when work is done
+          }
+
+          // 3. COLOR LOGIC: This is what fixes the "Snapshot" reset
+          // Check if there is a product currently moving toward this machine
+          const isProductIncoming = this.movingProducts.some(p => p.toId === m.id);
+
+          if (m.state === 'IDLE' && !isProductIncoming) {
+            // Only turn Gray if it's truly idle and no dot is about to hit it
+            obj.color = '#95a5a6';
+          } else if (m.state === 'BUSY' && m.currentColor?.startsWith('#')) {
+            // If the machine is busy and we have a real color, we can update it
+            // OR you can keep it as is and let the animate() hit handle it
+            const productInFlight = this.movingProducts.find(p => p.toId === m.id);
+            if (productInFlight) productInFlight.color = m.currentColor;
+          }
+
+          obj.state = m.state;
+        }
+      });
+    }
+
+    // Update Queues
+    if (serverState.queues) {
+      serverState.queues.forEach((q: any) => {
+        const obj = currentObjs.find(o => o.id === q.id);
+        if (obj) obj.productCount = q.size;
+      });
+    }
+
     this.object$.next(currentObjs);
   }
 
+  private triggerFlash(obj: any) {
+    obj.isFlashing = true;
+    this.object$.next([...this.objects]); // Redraw ON
+
+    setTimeout(() => {
+      obj.isFlashing = false;
+      this.object$.next([...this.objects]); // Redraw OFF
+    }, 400);
+  }
   private spawnProduct(color:string, fromId:string,toId:string){
     const products = [...this.movingProducts,{color,fromId,toId,progress:0}];
     this.movingProducts$.next(products);
@@ -151,31 +218,47 @@ startSimulation(productCount: number) {
   }
 
 
-  public animate(){
-    if(!this.isRunning) return;
-    const currentProducts = this.movingProducts.map(prod =>({
+  public animate() {
+    if (!this.isRunning) return;
+
+    const currentProducts = this.movingProducts.map(prod => ({
       ...prod,
-      progress:prod.progress+0.02
+      progress: prod.progress + 0.02
     }));
+
     currentProducts.forEach(prod => {
-      if(prod.progress >=1){
-        const machine = this.objects.find(o => o.id === prod.toId);
-        if(machine){
-          machine.color = prod.color;
+      if (prod.progress >= 1) {
+        const targetMachine = this.objects.find(o => o.id === prod.toId);
+        if (targetMachine) {
+          // Apply the color the dot is carrying (which we updated above!)
+          targetMachine.color = prod.color;
         }
       }
     });
+
     const remainingProducts = currentProducts.filter(prod => prod.progress < 1);
     this.movingProducts$.next(remainingProducts);
-    this.animationFrameId= requestAnimationFrame(() => {this.animate()})
+
+    // Refresh the UI to show machine color changes
+    this.object$.next([...this.objects]);
+
+    this.animationFrameId = requestAnimationFrame(() => { this.animate(); });
   }
 
 
   public stopSimulation(){
-    this.isRunning = false;
-    if(this.animationFrameId){
-      cancelAnimationFrame(this.animationFrameId);
-    }
+    this.http.post(`${this.API_URL}/simulation/stop`, {}).subscribe({
+      next: (data: any) => {
+        this.isRunning = false;
+        if(this.animationFrameId){
+          cancelAnimationFrame(this.animationFrameId);
+        }
+      },
+      error: (err:any) => {
+        console.log("failed to stop");
+      }
+    })
+    this._isRunning$.next(false);
   }
   public replaySimulation(){
     this.stopSimulation();
@@ -183,9 +266,21 @@ startSimulation(productCount: number) {
     const resetObjs = this.objects.map(obj =>({
       ...obj,
         productCount:0,
-        color:'#95a5a6'
+        color:'#95a5a6',
+      state:'IDLE'
     }));
     this.object$.next(resetObjs);
     this.movingProducts$.next([]);
+    this.http.post(`${this.API_URL}/simulation/replay`, {}).subscribe({})
+    this._isRunning$.next(true);
+  }
+
+  public ClearAll(){
+    this.object$.next([]);
+    this.connections$.next([]);
+    this.movingProducts$.next([]);
+    this.idCounter =0;
+    this.http.post(`${this.API_URL}/simulation/reset`, {}).subscribe({})
+    this.clearRequested.next();
   }
 }

@@ -5,6 +5,8 @@ export interface CanvasObject {
   y: number;
   productCount: number;
   color: string;
+  state: string;
+  isFlashing: boolean;
 }
 
 export interface Connection {
