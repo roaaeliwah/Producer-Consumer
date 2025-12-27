@@ -1,11 +1,12 @@
 import { Component } from '@angular/core';
 import {SimulationService} from '../Services/SimulationService';
-import {AsyncPipe} from '@angular/common';
+import {AsyncPipe, NgIf} from '@angular/common';
 @Component({
   selector: 'app-toolbar',
   standalone: true,
   imports: [
-    AsyncPipe
+    AsyncPipe,
+    NgIf
   ],
   templateUrl: './toolbar.html',
   styleUrl: './toolbar.css',

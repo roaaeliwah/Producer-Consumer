@@ -75,3 +75,19 @@ button.disabled{
   background: #e2e2e2;
   transform: scale(0.9);
 }
+.error-banner{
+  position: absolute;
+  top: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 60vw;
+  padding: 10px 16px;
+  border-radius: 8px;
+  background: rgba(192, 57, 43, 0.9);
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.2);
+  backdrop-filter: blur(6px);
+  font-size: 0.95rem;
+  text-align: center;
+  z-index: 95;
+}

@@ -43,3 +43,8 @@
     🧹
   </button>
 </div>
+<div
+  class="error-banner"
+  *ngIf="(simService.errorMessage$ | async) as error">
+  {{ error }}
+</div>

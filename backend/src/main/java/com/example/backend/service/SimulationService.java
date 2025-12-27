@@ -110,10 +110,6 @@ public class SimulationService {
         if (machine == null) throw new IllegalArgumentException("Machine not found: " + machineId);
         if (queue == null) throw new IllegalArgumentException("Queue not found: " + queueId);
 
-       /* if (hasPath(machineId, queueId, new HashSet<>())) {
-            throw new IllegalStateException("This would create a loop");
-        } */
-
         // Add queue to machine's input list if not already there
         if (!machine.getInputQueues().contains(queue)) {
             machine.getInputQueues().add(queue);

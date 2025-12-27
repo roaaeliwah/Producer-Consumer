@@ -17,6 +17,8 @@ export class SimulationService {
   public movingProducts$ = new BehaviorSubject<MovingProduct[]>([]);
   private animationFrameId: number | null = null;
   private eventSource: EventSource | null = null;
+  private errorMessageSubject = new BehaviorSubject<string | null>(null);
+  public errorMessage$ = this.errorMessageSubject.asObservable();
   private idCounter = 0;
   public isRunning = false;
   private _selectedTool$ = new BehaviorSubject<'Q' | 'M' | 'D' | null>(null);
@@ -101,13 +103,15 @@ export class SimulationService {
         console.log("Simulation running");
         this.isRunning = true;
         this._isRunning$.next(true);
+        this.updateError(null);
         this.animate();
         this.connectToSse();
       },
       error: (err) => {
         console.error("Error:", err);
-        alert("Failed to start simulation");
         this.isRunning = false;
+        const message = this.extractErrorMessage(err, 'Failed to start simulation.');
+        this.updateError(message);
         this._isRunning$.next(false);
       }
     });
@@ -135,6 +139,7 @@ export class SimulationService {
     eventSource.addEventListener('simulationStopped', () => {
       this.isRunning = false;
       this._isRunning$.next(false);
+      this.updateError(null);
       if (this.animationFrameId) {
         cancelAnimationFrame(this.animationFrameId);
         this.animationFrameId = null;
@@ -150,6 +155,7 @@ export class SimulationService {
       // If the connection drops, we stop the local animation
       this.isRunning = false;
       this._isRunning$.next(false);
+      this.updateError('Connection to the simulation stream was lost.');
       eventSource.close();
       if (this.eventSource === eventSource) {
         this.eventSource = null;
@@ -284,6 +290,8 @@ export class SimulationService {
       },
       error: (err: any) => {
         console.log("failed to stop");
+        const message = this.extractErrorMessage(err, 'Failed to stop simulation.');
+        this.updateError(message);
       }
     })
     this._isRunning$.next(false);
@@ -303,12 +311,15 @@ export class SimulationService {
       next: () => {
         this.isRunning = true;
         this._isRunning$.next(true);
+        this.updateError(null);
         this.animate();
         this.connectToSse();
       },
       error: (err) => {
         console.error("Failed to replay simulation", err);
         this.isRunning = false;
+        const message = this.extractErrorMessage(err, 'Failed to replay simulation.');
+        this.updateError(message);
         this._isRunning$.next(false);
       }
     });
@@ -321,5 +332,41 @@ export class SimulationService {
     this.idCounter = 0;
     this.http.post(`${this.API_URL}/simulation/reset`, {}).subscribe({})
     this.clearRequested.next();
+    this.updateError(null);
+  }
+
+  private updateError(message: string | null) {
+    this.errorMessageSubject.next(message);
+  }
+
+  private extractErrorMessage(err: any, fallback: string): string {
+    if (!err) {
+      return fallback;
+    }
+
+    const candidate = err.error ?? err;
+
+    if (typeof candidate === 'string') {
+      try {
+        const parsed = JSON.parse(candidate);
+        return parsed?.message || parsed?.error || candidate;
+      } catch {
+        return candidate;
+      }
+    }
+
+    if (candidate?.message) {
+      return candidate.message;
+    }
+
+    if (candidate?.error) {
+      return candidate.error;
+    }
+
+    if (err.message) {
+      return err.message;
+    }
+
+    return fallback;
   }
 }
