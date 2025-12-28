@@ -124,6 +124,7 @@ public class SimulationService {
     }
 
     public void startSimulation(int productCount) {
+        caretaker.clear();
         System.out.println("Starting simulation");
         if (running || mode != SimulationMode.STOPPED) return;
 
