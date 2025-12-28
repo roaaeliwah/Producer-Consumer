@@ -1,3 +1,4 @@
+<div class="container">
 <div class="top-container">
   <button
     id="Q"
@@ -18,7 +19,8 @@
   <button (click)="selectTool('D')"
           [class.active]="simService.selectedTool === 'D'"
           [disabled]="(simService.isRunning$ | async)"
-          style="background-color: #e74c3c; color: white;">
+          class="Trash"
+          style=" color: red;">
     🗑️
   </button>
   <button class="replay"
@@ -43,6 +45,7 @@
     🧹
   </button>
 </div>
+<div class="bottom-container">
 <div
   class="error-banner"
   *ngIf="(simService.errorMessage$ | async) as error">
@@ -65,6 +68,8 @@
     type="button"
     (click)="incrementProducts()"
     [disabled]="(simService.isRunning$ | async)">
-    +
+    <span>+</span>
   </button>
+</div>
+</div>
 </div>

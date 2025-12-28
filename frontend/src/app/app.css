@@ -1,8 +1,7 @@
 .app-shell {
   display: flex;
-  flex-direction: column;
-  width: 100vw;
-  height: 100vh;
+  align-items: center;
+  position:absolute;
   background-color: #121212; /* Deep black */
 }
 
@@ -40,6 +39,11 @@ app-canvas-renderer {
 
 /* If your toolbar is floating (position: absolute), this keeps the canvas behind it */
 app-toolbar {
-  z-index: 10;
+  position: absolute;
+  z-index: 100;
+  top: 0;
+  left: 0;
+  width: 100%;
+
 }
 
