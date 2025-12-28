@@ -6,7 +6,7 @@ import lombok.Getter;
 
 import java.util.UUID;
 
-@Data
+@Getter
 public class Product {
     private final String id = UUID.randomUUID().toString();
     private ColorGenerator colorGenerator = new ColorGenerator();

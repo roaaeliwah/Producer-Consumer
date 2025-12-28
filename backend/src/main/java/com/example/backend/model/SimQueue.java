@@ -2,9 +2,7 @@ package com.example.backend.model;
 
 import com.example.backend.observer.QueueObserver;
 import com.example.backend.observer.QueueSubject;
-import com.example.backend.service.SimulationService;
 import lombok.Data;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,27 +17,29 @@ public class SimQueue implements QueueSubject {
     private LinkedBlockingQueue<Product> products = new LinkedBlockingQueue<>();
     private List<QueueObserver> observers = new ArrayList<>();
 
-    public  SimQueue(String id) {
+    public SimQueue(String id) {
         this.id = id;
     }
 
-    public synchronized void put(Product product){
+    public synchronized void put(Product product) {
         products.add(product);
         notifyObservers();
-        if(onUpdate != null) onUpdate.run();
+        if (onUpdate != null)
+            onUpdate.run();
     }
 
     public synchronized Product take() {
         Product p = products.poll();
         if (p != null) {
-            if(onUpdate != null) onUpdate.run();
+            if (onUpdate != null)
+                onUpdate.run();
         }
         return p;
     }
 
     @Override
-    public synchronized void attach(QueueObserver observer){ // add the ready observers
-        if(!observers.contains(observer)){
+    public synchronized void attach(QueueObserver observer) { // add the ready observers
+        if (!observers.contains(observer)) {
             observers.add(observer);
         }
     }
@@ -50,8 +50,8 @@ public class SimQueue implements QueueSubject {
     }
 
     @Override
-    public void notifyObservers(){           // notify the first empty observer
-        if(!observers.isEmpty() && !products.isEmpty()){
+    public void notifyObservers() { // notify the first empty observer
+        if (!observers.isEmpty() && !products.isEmpty()) {
             QueueObserver firstReadyMachine = observers.remove(0);
             firstReadyMachine.update();
         }

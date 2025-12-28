@@ -1,9 +1,7 @@
 package com.example.backend.model;
 
 import com.example.backend.observer.QueueObserver;
-import com.example.backend.service.SimulationService;
 import lombok.Data;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -20,7 +18,7 @@ public class Machine implements Runnable, QueueObserver {
     private volatile String currentColor = "GRAY";
 
     private List<SimQueue> inputQueues = new ArrayList<>();
-  //  private SimQueue outputQueue;
+    // private SimQueue outputQueue;
     private List<SimQueue> outputQueues = new ArrayList<>();
 
     private final Object lock = new Object();
@@ -33,12 +31,13 @@ public class Machine implements Runnable, QueueObserver {
     }
 
     @Override
-    public void update(){
-        synchronized (lock){
+    public void update() {
+        synchronized (lock) {
             notified = true;
             lock.notify(); // to wake up the thread
         }
     }
+
     @Override
     public void run() {
         try {
@@ -68,8 +67,7 @@ public class Machine implements Runnable, QueueObserver {
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-        }
-        finally {
+        } finally {
             setState(MachineState.IDLE);
             resetColor();
         }
@@ -85,22 +83,21 @@ public class Machine implements Runnable, QueueObserver {
                 }
             }
             // if all the queues are empty register as ready
-            for(SimQueue queue : inputQueues){
+            for (SimQueue queue : inputQueues) {
                 queue.attach(this);
             }
-            synchronized (lock){
-                while (!notified && running){
+            synchronized (lock) {
+                while (!notified && running) {
                     lock.wait(); // go to sleep until a queue update()
                 }
                 notified = false;
             }
-            for(SimQueue queue : inputQueues){
+            for (SimQueue queue : inputQueues) {
                 queue.detach(this);
             }
         }
         throw new InterruptedException("Machine stopped");
     }
-
 
     private void process() throws InterruptedException {
         int serviceTime = ThreadLocalRandom.current().nextInt(1000, 3000);
@@ -117,17 +114,20 @@ public class Machine implements Runnable, QueueObserver {
 
     private void setState(MachineState newState) {
         this.state = newState;
-        if (onStateChange != null) onStateChange.run();
+        if (onStateChange != null)
+            onStateChange.run();
     }
 
     private void setColor(String color) {
         this.currentColor = color;
-        if (onStateChange != null) onStateChange.run();
+        if (onStateChange != null)
+            onStateChange.run();
     }
 
     private void resetColor() {
         this.currentColor = "GRAY";
-        if (onStateChange != null) onStateChange.run();
+        if (onStateChange != null)
+            onStateChange.run();
     }
 
     public void stopMachine() {
