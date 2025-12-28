@@ -9,6 +9,7 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Data
 public class Machine implements Runnable, QueueObserver {
@@ -57,12 +58,6 @@ public class Machine implements Runnable, QueueObserver {
                 setState(MachineState.FINISHED);
                 flash();
 
-                // Forward product
-              /*  if (outputQueue != null) {
-                    //might be replaced with a list of multiple output queues later
-                    outputQueue.put(product);
-                } */
-
                 for (SimQueue queue : outputQueues) {
                     queue.put(product);
                 }
@@ -108,7 +103,7 @@ public class Machine implements Runnable, QueueObserver {
 
 
     private void process() throws InterruptedException {
-        int serviceTime = 500 + (int) (Math.random() * 1500);
+        int serviceTime = ThreadLocalRandom.current().nextInt(1000, 3000);
         Thread.sleep(serviceTime);
     }
 

@@ -1,15 +1,19 @@
 @media (prefers-color-scheme: dark) {
-  body{
+  body {
     background-color: #282c34;
     color: white;
   }
 }
+
 .canvas-container {
   width: 100%;
-  height: 100vh; /* Or however much height you want to give it */
-  position: relative; /* Acts as the anchor for the canvas */
+  height: 100vh;
+  /* Or however much height you want to give it */
+  position: relative;
+  /* Acts as the anchor for the canvas */
   overflow: hidden;
-  background-color: #1e1e1e; /* The color behind the grid lines */
+  background-color: #1e1e1e;
+  /* The color behind the grid lines */
 }
 
 #MyCanvas {
@@ -25,7 +29,8 @@
   border: 1px solid #ccc;
 
   /* Remove position: absolute unless you specifically need overlaying divs */
-  cursor: crosshair; /* Makes it feel like a design tool */
+  cursor: crosshair;
+  /* Makes it feel like a design tool */
 }
 
 .product-overlay {

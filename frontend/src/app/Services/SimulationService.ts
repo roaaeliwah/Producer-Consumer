@@ -21,6 +21,7 @@ export class SimulationService {
   public errorMessage$ = this.errorMessageSubject.asObservable();
   private productCountSubject = new BehaviorSubject<number>(10);
   public productCount$ = this.productCountSubject.asObservable();
+  private readonly defaultQueuePosition = { x: 150, y: 180 };
   private idCounter = 0;
   public isRunning = false;
   private _selectedTool$ = new BehaviorSubject<'Q' | 'M' | 'D' | null>(null);
@@ -32,7 +33,9 @@ export class SimulationService {
 
   private readonly API_URL = 'http://localhost:8080/api';
 
-  constructor(private readonly http: HttpClient) { }
+  constructor(private readonly http: HttpClient) {
+    this.resetToDefaultState();
+  }
   get objects() { return this.object$.value; }
   get connections() { return this.connections$.value; }
   get movingProducts() { return this.movingProducts$.value; }
@@ -66,6 +69,9 @@ export class SimulationService {
   }
 
   deleteObject(id: string) {
+    if (id === 'Q0') {
+      return;
+    }
 
     const filteredObjs = this.objects.filter(o => o.id !== id);
     const filteredConnections = this.connections.filter(c => c.fromId !== id && c.toId !== id);
@@ -332,12 +338,8 @@ export class SimulationService {
   }
 
   public ClearAll() {
-    this.object$.next([]);
-    this.connections$.next([]);
-    this.movingProducts$.next([]);
-    this.idCounter = 0;
+    this.resetLayout();
     this.http.post(`${this.API_URL}/simulation/reset`, {}).subscribe({})
-    this.clearRequested.next();
     this.updateError(null);
     this.productCountSubject.next(10);
   }
@@ -345,6 +347,32 @@ export class SimulationService {
   public adjustProductCount(delta: number) {
     const nextValue = Math.max(1, this.productCount + delta);
     this.productCountSubject.next(nextValue);
+  }
+
+  public resetLayout() {
+    this.resetToDefaultState();
+    this.clearRequested.next();
+  }
+
+  private resetToDefaultState() {
+    const defaultQueue = this.buildDefaultQueue();
+    this.object$.next([defaultQueue]);
+    this.connections$.next([]);
+    this.movingProducts$.next([]);
+    this.idCounter = 1;
+  }
+
+  private buildDefaultQueue(): CanvasObject {
+    return {
+      id: 'Q0',
+      type: 'Q',
+      x: this.defaultQueuePosition.x,
+      y: this.defaultQueuePosition.y,
+      productCount: 0,
+      color: '#95a5a6',
+      state: 'IDEAL',
+      isFlashing: false,
+    };
   }
 
   private updateError(message: string | null) {

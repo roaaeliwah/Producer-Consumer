@@ -3,6 +3,8 @@ package com.example.backend;
 import com.example.backend.model.Product;
 import com.example.backend.model.SimQueue;
 
+import java.util.concurrent.ThreadLocalRandom;
+
 public class InputGenerator implements Runnable {
 
     private final SimQueue outputQueue;
@@ -20,7 +22,7 @@ public class InputGenerator implements Runnable {
             try {
                 Product p = new Product();   // generates ID + color
                 outputQueue.put(p);   // notify machines via observer
-                Thread.sleep(500 + (int)(Math.random() * 1500)); // random interval
+                Thread.sleep(ThreadLocalRandom.current().nextInt(1000, 3000)); // random interval
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }

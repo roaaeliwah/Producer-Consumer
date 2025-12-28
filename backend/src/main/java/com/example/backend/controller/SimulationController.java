@@ -102,18 +102,12 @@ public class SimulationController {
         simulationService.stopReplay();
         return ResponseEntity.ok().build();
     }
-    
+
     @PostMapping("/simulation/reset")
     public ResponseEntity<?> resetSimulation() {
         simulationService.reset();
         return ResponseEntity.ok().build();
     }
-
-    @GetMapping("/simulation/state")
-    public ResponseEntity<SimStateDTO> getSimulationState() {
-        return ResponseEntity.ok(simulationService.getCurrentState());
-    }
-
 
     @GetMapping("/simulation/stream")
     public SseEmitter streamSimulation() {

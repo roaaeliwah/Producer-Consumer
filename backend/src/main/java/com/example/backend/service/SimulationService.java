@@ -199,8 +199,6 @@ public class SimulationService {
         monitorThread.start();
     }
 
-    //stop
-
     public void stopSimulation() {
         System.out.println("stopped simulation1");
         if (!running || mode != SimulationMode.LIVE) return; // simulation already stopped
@@ -395,25 +393,8 @@ public class SimulationService {
         }
     }
 
-    // returns a snapshot of the current state
-    public SimStateDTO getCurrentState() {
-        SimulationSnapshot snapshot = caretaker.getCurrentSnapshot();
-
-        if (snapshot == null) {
-            return new SimStateDTO(
-                    System.currentTimeMillis(),
-                    List.of(),
-                    List.of(),
-                    mode,
-                    List.of()
-            );
-        }
-
-        return SimStateMapper.toDTO(snapshot, machines, queues, mode);
-    }
-
     public synchronized void triggerSnapshot() {
-        if (!running) return;
+        // allow final frame publication even after running flag flips false during shutdown
         recordFrame(System.currentTimeMillis());
 
         SimulationSnapshot latest = caretaker.getCurrentSnapshot();

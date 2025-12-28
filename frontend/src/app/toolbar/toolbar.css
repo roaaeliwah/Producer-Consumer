@@ -26,7 +26,7 @@
   flex-wrap: wrap;
 }
 
-.top-container > button {
+.top-container>button {
   margin: 0 5px;
   border: none;
   background: #e2e2e2;
@@ -41,29 +41,29 @@
   cursor: pointer;
 }
 
-.top-container > button img {
+.top-container>button img {
   width: 24px;
   height: 24px;
   background: transparent;
   padding: 0;
 }
 
-.top-container > button:hover {
+.top-container>button:hover {
   background: #007bff;
   transform: translateY(-2px);
 }
 
-.top-container > button:active {
+.top-container>button:active {
   transform: scale(1.05);
 }
 
-.top-container > button.active {
+.top-container>button.active {
   background: #007bff;
   border: 1px solid white;
   transform: scale(1.1);
 }
 
-.top-container > button.disabled {
+.top-container>button.disabled {
   background: #e2e2e2;
   transform: scale(0.9);
 }
