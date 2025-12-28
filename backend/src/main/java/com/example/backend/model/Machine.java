@@ -55,7 +55,7 @@ public class Machine implements Runnable, QueueObserver {
                 process();
 
                 // Finished processing
-                setState(MachineState.FINISHED);
+                setState(MachineState.IDLE);
                 flash();
 
                 for (SimQueue queue : outputQueues) {

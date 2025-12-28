@@ -54,7 +54,7 @@ export class SimulationService {
       y: y,
       productCount: 0,
       color: '#95a5a6',
-      state: 'IDEAL',
+      state: 'IDLE',
       isFlashing: false,
     };
     this.object$.next([...this.objects, newObj]);
@@ -81,15 +81,6 @@ export class SimulationService {
 
   startSimulation(productCount?: number) {
     if (this.isRunning) return;
-    this.setTool(null);
-    const freshObjs = this.objects.map(obj => ({
-      ...obj,
-      productCount: 0,
-      state: 'IDLE',
-      color: '#95a5a6',
-    }))
-    this.object$.next(freshObjs);
-    this.movingProducts$.next([]);
     const products = productCount ?? this.productCount;
     const objectPayload = {
       queues: this.objects.filter(o => o.type === 'Q').map(q => q.id),
@@ -191,10 +182,9 @@ export class SimulationService {
       serverState.machines.forEach((m: any) => {
         const obj = currentObjs.find(o => o.id === m.id);
         if (obj) {
-          const isNowWroking = m.state === 'BUSY' || m.state === 'FINISHED';
-
+          console.log(obj);
           // 1. TRIGGER: Animation from Queue to Machine
-          if (obj.state === 'IDLE' && isNowWroking) {
+          if (obj.state === 'IDLE' && m.state === 'BUSY') {
             const sourceId = m.inputQueueIds?.[0];
             if (sourceId) {
               this.spawnProduct(m.currentColor, sourceId, m.id);
@@ -202,7 +192,7 @@ export class SimulationService {
           }
 
           // 2. TRIGGER: Animation from Machine to Queue (Output)
-          if (obj.state === 'BUSY' && m.state === 'FINISHED') {
+          if (obj.state === 'BUSY' && m.state === 'IDLE') {
             const targetQueueId = m.outputQueueIds?.[0];
             if (targetQueueId) {
               this.spawnProduct(m.currentColor, m.id, targetQueueId);
@@ -214,12 +204,14 @@ export class SimulationService {
           // Check if there is a product currently moving toward this machine
           const isProductIncoming = this.movingProducts.some(p => p.toId === m.id);
 
-          if (m.state === 'IDLE' && !isProductIncoming) {
-            // Only turn Gray if it's truly idle and no dot is about to hit it
+          if (m.currentColor?.startsWith('#')) {
+            obj.color = m.currentColor;
+          } else if (m.state === 'IDLE' && !isProductIncoming) {
+            // Fallback to neutral when nothing is en route and no color is supplied
             obj.color = '#95a5a6';
-          } else if (m.state === 'BUSY' && m.currentColor?.startsWith('#')) {
-            // If the machine is busy and we have a real color, we can update it
-            // OR you can keep it as is and let the animate() hit handle it
+          }
+
+          if (m.state === 'BUSY' && m.currentColor?.startsWith('#')) {
             const productInFlight = this.movingProducts.find(p => p.toId === m.id);
             if (productInFlight) productInFlight.color = m.currentColor;
           }
@@ -275,19 +267,15 @@ export class SimulationService {
 
     const currentProducts = this.movingProducts.map(prod => ({
       ...prod,
-      progress: prod.progress + 0.03
+      progress: prod.progress + 0.02
     }));
 
     currentProducts.forEach(prod => {
       if (prod.progress >= 1) {
         const targetMachine = this.objects.find(o => o.id === prod.toId);
         if (targetMachine) {
-          if(targetMachine.type === 'M') {
-            targetMachine.color = prod.color;
-          }
-          else if(targetMachine.type === 'Q') {
-            targetMachine.productCount = (targetMachine as any).serverCount || targetMachine.productCount;
-          }
+          // Apply the color the dot is carrying (which we updated above!)
+          targetMachine.color = prod.color;
         }
       }
     });
@@ -306,6 +294,9 @@ export class SimulationService {
     this.http.post(`${this.API_URL}/simulation/stop`, {}).subscribe({
       next: (data: any) => {
         this.isRunning = false;
+        if (this.animationFrameId) {
+          cancelAnimationFrame(this.animationFrameId);
+        }
         if (this.eventSource) {
           this.eventSource.close();
           this.eventSource = null;
@@ -381,7 +372,7 @@ export class SimulationService {
       y: this.defaultQueuePosition.y,
       productCount: 0,
       color: '#95a5a6',
-      state: 'IDEAL',
+      state: 'IDLE',
       isFlashing: false,
     };
   }
