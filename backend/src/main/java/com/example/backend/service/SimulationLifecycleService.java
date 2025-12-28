@@ -61,7 +61,7 @@ public class SimulationLifecycleService {
         snapshotService.triggerSnapshot();
         System.out.println("started snapshot thread");
 
-        // Start monitoring thread to auto-stop when done
+        // 5. Start monitoring thread to auto-stop when done
         Thread monitorThread = new Thread(() -> {
             try {
                 inputThread.join(); // Wait for input generator to finish

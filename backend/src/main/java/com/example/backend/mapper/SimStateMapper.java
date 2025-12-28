@@ -55,14 +55,6 @@ public class SimStateMapper {
                 )
                 .toList());
 
-
-       /* connectionDTOs.addAll(
-                machines.values().stream()
-                        .filter(m -> m.getOutputQueue() != null)
-                        .map(m -> new ConnectionDTO(m.getId(), m.getOutputQueue().getId(), "OUTPUT"))
-                        .toList()
-        );*/
-
         connectionDTOs.addAll(
                 machines.values().stream()
                         .flatMap(m -> m.getOutputQueues().stream()

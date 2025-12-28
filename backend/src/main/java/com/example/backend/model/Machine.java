@@ -18,7 +18,6 @@ public class Machine implements Runnable, QueueObserver {
     private volatile String currentColor = "GRAY";
 
     private List<SimQueue> inputQueues = new ArrayList<>();
-    // private SimQueue outputQueue;
     private List<SimQueue> outputQueues = new ArrayList<>();
 
     private final Object lock = new Object();
@@ -106,10 +105,6 @@ public class Machine implements Runnable, QueueObserver {
 
     private void flash() throws InterruptedException {
         Thread.sleep(200);
-    }
-
-    public void setOnStateChange(Runnable callback) {
-        this.onStateChange = callback;
     }
 
     private void setState(MachineState newState) {

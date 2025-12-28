@@ -1,19 +1,14 @@
 package com.example.backend.dto;
 
-import lombok.Data;
+import lombok.*;
 
 import java.util.List;
 
 @Data
+@AllArgsConstructor
 public class QueueDTO {
-    private String id;          // Queue ID
-    private int size;           // Number of products currently in the queue
-    private List<String> productColors; // Colors of products for visualization
-
-    // Constructor
-    public QueueDTO(String id, int size, List<String> productColors) {
-        this.id = id;
-        this.size = size;
-        this.productColors = productColors;
-    }
+    private String id;
+    private int size;
+    // Colors of products for visualization
+    private List<String> productColors;
 }

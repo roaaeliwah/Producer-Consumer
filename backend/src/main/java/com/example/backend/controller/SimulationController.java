@@ -6,13 +6,11 @@ import com.example.backend.service.SimulationLifecycleService;
 import com.example.backend.service.ReplayService;
 import com.example.backend.service.SsePublisherService;
 import com.example.backend.dto.ConnectionDTO;
-import com.example.backend.dto.SimStateDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.util.Collections;
 import java.util.List;
 
 @RestController
@@ -33,7 +31,6 @@ public class SimulationController {
     private SimulationFacade simulationFacade;
 
     // Graph Construction
-
     @PostMapping("/init/objects")
     public ResponseEntity<?> initObjects(@RequestBody ObjectInitDTO initData) {
         simulationFacade.initializeObjects(initData);
@@ -46,48 +43,7 @@ public class SimulationController {
         return ResponseEntity.ok().build();
     }
 
-    /*
-     * @PostMapping("/queues")
-     * public ResponseEntity<?> createQueue(@RequestBody CreateDTO dto) {
-     * simulationService.addQueue(dto.getId());
-     * return ResponseEntity.ok().build();
-     * }
-     * 
-     * 
-     * @PostMapping("/machines")
-     * public ResponseEntity<?> createMachine(@RequestBody CreateDTO dto) {
-     * String id = simulationService.addMachine(dto.getId());
-     * return ResponseEntity.ok().build();
-     * }
-     * 
-     */
-    // @DeleteMapping("/queue/{queueId}")
-    // public void deleteQueue(@PathVariable String queueId) {
-    // simulationService.deleteQueue(queueId);
-    // }
-    //
-    // @DeleteMapping("/machine/{machineId}")
-    // public void deleteMachine(@PathVariable String machineId) {
-    // simulationService.deleteMachine(machineId);
-    // }
-    /*
-     * @PostMapping("/connections/input")
-     * public ResponseEntity<?> connectInputQueue(@RequestBody ConnectionDTO
-     * connectionDTO) {
-     * simulationService.connectInputQueue(connectionDTO.getMachineId(),
-     * connectionDTO.getQueueId());
-     * return ResponseEntity.ok().build();
-     * }
-     * 
-     * @PostMapping("/connections/output")
-     * public ResponseEntity<?> connectOutputQueue(@RequestBody ConnectionDTO
-     * connectionDTO) {
-     * simulationService.connectOutputQueue(connectionDTO.getMachineId(),
-     * connectionDTO.getQueueId());
-     * return ResponseEntity.ok().build();
-     * }
-     */
-
+    // Simulation Control
     @PostMapping("/simulation/start")
     public ResponseEntity<?> startSimulation(@RequestParam int productCount) {
         lifecycleService.startSimulation(productCount);
@@ -100,6 +56,7 @@ public class SimulationController {
         return ResponseEntity.ok().build();
     }
 
+    // Replay Control
     @PostMapping("/simulation/replay")
     private ResponseEntity<?> replaySimulation() {
         replayService.replay();
@@ -112,12 +69,14 @@ public class SimulationController {
         return ResponseEntity.ok().build();
     }
 
+    // Reset Simulation
     @PostMapping("/simulation/reset")
     public ResponseEntity<?> resetSimulation() {
         lifecycleService.reset();
         return ResponseEntity.ok().build();
     }
 
+    // SSE Endpoint
     @GetMapping("/simulation/stream")
     public SseEmitter streamSimulation() {
         return ssePublisherService.createEmitter();

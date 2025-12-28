@@ -1,9 +1,7 @@
 package com.example.backend.dto;
 
 import com.example.backend.service.SimulationMode;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.List;
 
@@ -12,13 +10,9 @@ import java.util.List;
 @AllArgsConstructor
 public class SimStateDTO {
     private long timestamp;
-
     private List<MachineDTO> machines;
-
     private List<QueueDTO> queues;
-
     private SimulationMode mode;
-    private List<ConnectionDTO> connections;   // Optional
-
+    private List<ConnectionDTO> connections;
 }
 

@@ -17,7 +17,6 @@ public class SimulationCareTaker {
         currentSnapshot = snapshot;
     }
 
-
     public List<com.example.backend.snapshot.SimulationSnapshot> getHistory() {
         return new ArrayList<>(history);
     }
