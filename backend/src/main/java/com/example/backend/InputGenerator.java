@@ -18,6 +18,14 @@ public class InputGenerator implements Runnable {
 
     @Override
     public void run() {
+
+
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
         for (int i = 0; i < productCount && running; i++) {
             try {
                 Product p = new Product();   // generates ID + color

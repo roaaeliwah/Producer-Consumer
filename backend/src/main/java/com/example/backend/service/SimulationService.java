@@ -169,7 +169,7 @@ public class SimulationService {
 
                 // Check if all queues are empty and machines are idle
                 while (running) {
-                    if (lastQueue.size() == productCount) {
+                    if (lastQueue.size() == productCount) {Thread.sleep(2000);
                         stopSimulation();
                         break;
                     }
