@@ -63,11 +63,22 @@
   transform: scale(1.1);
 }
 
-.top-container>button.disabled {
-  background: #e2e2e2;
-  transform: scale(0.9);
+.top-container>button:disabled {
+  background-color: #9a9a9a !important;
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none !important;
+  box-shadow: none !important;
 }
-
+.top-container > button:disabled img {
+  filter: grayscale(100%);
+  opacity: 0.5;
+}
+.top-container > button:disabled:hover {
+  background-color: #555555 !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
 .End:hover {
   box-shadow: 1px 1px 8px #8a0707;
   background: #8a0707;

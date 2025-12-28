@@ -13,7 +13,7 @@ import { AsyncPipe, NgIf } from '@angular/common';
 })
 export class Toolbar {
   constructor(public simService: SimulationService) { }
-
+  ispaused: boolean  = false;
   selectTool(tool: 'Q' | 'M' | 'D') {
     const newTool = this.simService.selectedTool === tool ? null : tool;
     this.simService.setTool(newTool);
@@ -37,5 +37,14 @@ export class Toolbar {
     if (confirm("Are you sure you want to clear the entire floor?")) {
       this.simService.ClearAll();
     }
+  }
+  pause_continue(){
+    if(this.ispaused){
+
+    }
+    else{
+
+    }
+    this.ispaused = !this.ispaused;
   }
 }

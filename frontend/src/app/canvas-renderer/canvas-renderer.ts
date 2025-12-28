@@ -19,11 +19,18 @@ export class CanvasRenderer implements AfterViewInit {
   private machineIcon = new Image();
   isDragging = false;
   draggedObject: any = null;
-  isConnecting = false;
+  public isConnecting = false;
   firstSelectedNode: any = null;
   mousePos = { x: 0, y: 0 };
-
   constructor(public simService: SimulationService, private http: HttpClient) { }
+  @HostListener('window:keydown.escape', ['$event'])
+  onEscapePress(event: any) {
+    if (this.isConnecting) {
+      this.isConnecting = false;
+      this.firstSelectedNode = null;
+      this.drawAll();
+    }
+  }
   @HostListener('window:resize')
   onResize() {
     this.resizeCanvas();
@@ -45,6 +52,7 @@ export class CanvasRenderer implements AfterViewInit {
       if (tool === 'D') canvas.style.cursor = 'no-drop';
       else if (tool) canvas.style.cursor = 'crosshair';
       else canvas.style.cursor = 'default';
+      this.drawAll();
     });
 
   }
@@ -69,6 +77,7 @@ export class CanvasRenderer implements AfterViewInit {
   drawAll() {
     if (!this.ctx || !this.canvasRef) return;
     this.clearPixels();
+    const isDeleteMode = this.simService.selectedTool === 'D';
     this.simService.connections.forEach(conn => {
       const from = this.simService.objects.find(o => o.id === conn.fromId);
       const to = this.simService.objects.find(o => o.id === conn.toId);
@@ -83,7 +92,17 @@ export class CanvasRenderer implements AfterViewInit {
         // Calculate the point on the edge
         const targetX = to.x - (dx / distance) * offset;
         const targetY = to.y - (dy / distance) * offset;
-        this.drawArrow(from.x, from.y, targetX, targetY);
+        if(isDeleteMode) {
+          this.ctx!.save(); // Save state to avoid glowing everything else
+          this.ctx!.shadowBlur = 10;
+          this.ctx!.shadowColor = '#e74c3c'; // Red glow
+          this.ctx!.lineWidth = 4;           // Thicker line
+          this.drawArrow(from.x, from.y, targetX, targetY, '#e74c3c');
+          this.ctx!.restore(); // Reset shadow and line width
+        }
+        else{
+          this.drawArrow(from.x, from.y, targetX, targetY);
+        }
       }
     });
     this.drawMovingProducts();
@@ -108,23 +127,28 @@ export class CanvasRenderer implements AfterViewInit {
     const rect = this.canvasRef.nativeElement.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
+    this.mousePos ={x,y}
     if (this.isDragging && this.draggedObject) {
       this.draggedObject.x = Math.round(x / 30) * 30;
       this.draggedObject.y = Math.round(y / 30) * 30;
       this.drawAll();
     }
-    if (this.isConnecting) {
-      this.mousePos.x = event.clientX - rect.left;
-      this.mousePos.y = event.clientY - rect.top;
-      this.drawAll();
-    }
     const hoverObj = this.simService.objects.find(obj => x >= obj.x - 30 && x <= obj.x + 30 && y >= obj.y - 40 && y <= obj.y + 40);
-    if (hoverObj) {
-      const overPort = this.getProtAt(x, y, hoverObj);
-      this.canvasRef.nativeElement.style.cursor = overPort ? 'pointer' : 'move';
+    const canvas = this.canvasRef.nativeElement;
+    if(this.simService.selectedTool === 'D'){
+      canvas.style.cursor = hoverObj? 'no-drop' : 'default';
     }
-    else {
-      this.canvasRef.nativeElement.style.cursor = 'default';
+    else if(this.isConnecting){
+      canvas.style.cursor = 'crosshair';
+    }
+    else if(hoverObj){
+      canvas.style.cursor = 'move';
+    }
+    else{
+      canvas.style.cursor = 'default';
+    }
+    if (this.isConnecting) {
+      this.drawAll();
     }
   }
 
@@ -132,12 +156,25 @@ export class CanvasRenderer implements AfterViewInit {
     const rect = this.canvasRef.nativeElement.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
+    this.mousePos ={x,y};
     const clickedObj = this.simService.objects.find(obj => x >= obj.x - 30 && x <= obj.x + 30 && y >= obj.y - 40 && y <= obj.y + 40);
     if (this.simService.selectedTool === 'D') {
       if (clickedObj) {
         this.Deleteobj(clickedObj.id);
-        this.drawAll();
+      } else {
+        // Check if clicking a connection line
+        const connToDelete = this.simService.connections.find(conn => {
+          const from = this.simService.objects.find(o => o.id === conn.fromId);
+          const to = this.simService.objects.find(o => o.id === conn.toId);
+          return from && to && this.isPointNearLine(x, y, from.x, from.y, to.x, to.y);
+        });
+
+        if (connToDelete) {
+          const filtered = this.simService.connections.filter(c => c !== connToDelete);
+          this.simService.connections$.next(filtered);
+        }
       }
+      this.drawAll();
       return;
     }
     if (this.isConnecting && clickedObj) {
@@ -147,7 +184,7 @@ export class CanvasRenderer implements AfterViewInit {
       }
     }
 
-    if (clickedObj) {
+    /*if (clickedObj) {
       const port = this.getProtAt(x, y, clickedObj);
       if (port) {
         this.isConnecting = true;
@@ -159,6 +196,13 @@ export class CanvasRenderer implements AfterViewInit {
         this.draggedObject = clickedObj;
         this.selectedObject = clickedObj.id;
       }
+      this.drawAll();
+      return;
+    }*/
+    if(clickedObj) {
+      this.isDragging = true;
+      this.draggedObject = clickedObj;
+      this.selectedObject = clickedObj.id;
       this.drawAll();
       return;
     }
@@ -178,14 +222,34 @@ export class CanvasRenderer implements AfterViewInit {
   }
 
   onMouseUp(event: MouseEvent) {
+    /*this.isDragging = false;
+    this.draggedObject = null;*/
+    const rect = this.canvasRef.nativeElement.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    // Calculate if the user moved the mouse or just clicked
+    const distanceMoved = Math.sqrt(
+      Math.pow(x - this.mousePos.x, 2) + Math.pow(y - this.mousePos.y, 2)
+    );
+
+    // If it was a "Still" click (distance < 5 pixels) and we were on an object
+    if (this.draggedObject && distanceMoved < 5) {
+      if (!this.isConnecting) {
+        this.isConnecting = true;
+        this.firstSelectedNode = this.draggedObject;
+      }
+    }
+
     this.isDragging = false;
     this.draggedObject = null;
+    this.drawAll();
   }
 
   drawQueue(obj: CanvasObject) {
     const ctx = this.ctx!;
     const { x, y, productCount } = obj;
-    const w = 40;
+    const w = 70;
     const h = 45;
     const topLeftX = x - w / 2;
     const topLeftY = y - h / 2;
@@ -194,8 +258,18 @@ export class CanvasRenderer implements AfterViewInit {
     ctx.strokeStyle = '#333';
     ctx.lineWidth = 2;
     ctx.strokeRect(topLeftX, topLeftY, w, h);
-    ctx.drawImage(this.queueIcon, x - 15, y - 20, 30, 30);
-    const badgeX = x + 20;
+    this.ctx!.fillStyle = "black";
+    this.ctx!.font = "bold 15px Arial";
+    this.ctx!.textAlign = "center";
+    this.ctx!.textBaseline = "middle";
+    if(obj.id === 'Q0'){
+      ctx.fillText("Main Q",x,y);
+    }
+    else{
+      ctx.fillText("Queue",x,y);
+    }
+
+    const badgeX = x + 35;
     const badgeY = y - 22;
 
     this.ctx!.beginPath();
@@ -289,8 +363,8 @@ export class CanvasRenderer implements AfterViewInit {
 
   drawPorts(x: number, y: number) {
     const ports = [
-      { x: x, y: y - 30 }, { x: x, y: y + 30 },
-      { x: x - 20, y: y }, { x: x + 20, y: y }
+      { x: x, y: y - 25 }, { x: x, y: y + 25 },
+      { x: x - 40, y: y }, { x: x + 40, y: y }
     ];
     this.ctx!.fillStyle = "#3498db"
     ports.forEach(p => {
@@ -302,14 +376,20 @@ export class CanvasRenderer implements AfterViewInit {
   Deleteobj(objId: string) {
     this.simService.deleteObject(objId);
   }
-  getProtAt(x: number, y: number, obj: CanvasObject) {
-    const prots = [
-      { x: obj.x, y: obj.y - 30 },
-      { x: obj.x, y: obj.y + 30 },
-      { x: obj.x - 20, y: obj.y },
-      { x: obj.x + 20, y: obj.y },
-    ];
-    return prots.find(p => Math.hypot(p.x - x, p.y - y) < 18);
+  isPointNearLine(px: number, py: number, x1: number, y1: number, x2: number, y2: number): boolean {
+    const L2 = Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2);
+    if (L2 === 0) return false;
+
+    // Calculate the projection of the point onto the line
+    const r = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / L2;
+
+    // If the click is "beyond" the ends of the line, ignore it
+    if (r < 0 || r > 1) return false;
+
+    // Calculate the perpendicular distance
+    const dist = Math.abs((y2 - y1) * px - (x2 - x1) * py + x2 * y1 - y2 * x1) / Math.sqrt(L2);
+
+    return dist < 15; // Increased tolerance slightly to 15px for easier clicking
   }
 
   finishConnection(clickedObj: CanvasObject) {

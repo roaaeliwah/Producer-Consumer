@@ -81,6 +81,15 @@ export class SimulationService {
 
   startSimulation(productCount?: number) {
     if (this.isRunning) return;
+    this.setTool(null);
+    const freshObjs = this.objects.map(obj => ({
+      ...obj,
+      productCount: 0,
+      state: 'IDLE',
+      color: '#95a5a6',
+    }))
+    this.object$.next(freshObjs);
+    this.movingProducts$.next([]);
     const products = productCount ?? this.productCount;
     const objectPayload = {
       queues: this.objects.filter(o => o.type === 'Q').map(q => q.id),
@@ -182,9 +191,10 @@ export class SimulationService {
       serverState.machines.forEach((m: any) => {
         const obj = currentObjs.find(o => o.id === m.id);
         if (obj) {
-          console.log(obj);
+          const isNowWroking = m.state === 'BUSY' || m.state === 'FINISHED';
+
           // 1. TRIGGER: Animation from Queue to Machine
-          if (obj.state === 'IDLE' && m.state === 'BUSY') {
+          if (obj.state === 'IDLE' && isNowWroking) {
             const sourceId = m.inputQueueIds?.[0];
             if (sourceId) {
               this.spawnProduct(m.currentColor, sourceId, m.id);
@@ -265,15 +275,19 @@ export class SimulationService {
 
     const currentProducts = this.movingProducts.map(prod => ({
       ...prod,
-      progress: prod.progress + 0.02
+      progress: prod.progress + 0.03
     }));
 
     currentProducts.forEach(prod => {
       if (prod.progress >= 1) {
         const targetMachine = this.objects.find(o => o.id === prod.toId);
         if (targetMachine) {
-          // Apply the color the dot is carrying (which we updated above!)
-          targetMachine.color = prod.color;
+          if(targetMachine.type === 'M') {
+            targetMachine.color = prod.color;
+          }
+          else if(targetMachine.type === 'Q') {
+            targetMachine.productCount = (targetMachine as any).serverCount || targetMachine.productCount;
+          }
         }
       }
     });
@@ -292,9 +306,6 @@ export class SimulationService {
     this.http.post(`${this.API_URL}/simulation/stop`, {}).subscribe({
       next: (data: any) => {
         this.isRunning = false;
-        if (this.animationFrameId) {
-          cancelAnimationFrame(this.animationFrameId);
-        }
         if (this.eventSource) {
           this.eventSource.close();
           this.eventSource = null;
