@@ -192,7 +192,7 @@ export class SimulationService {
           }
 
           // 2. TRIGGER: Animation from Machine to Queue (Output)
-          if (obj.state === 'BUSY' && m.state === 'IDLE') {
+          if (obj.state === 'BUSY' && m.state === 'FINISHED') {
             const targetQueueId = m.outputQueueIds?.[0];
             if (targetQueueId) {
               this.spawnProduct(m.currentColor, m.id, targetQueueId);
@@ -204,14 +204,12 @@ export class SimulationService {
           // Check if there is a product currently moving toward this machine
           const isProductIncoming = this.movingProducts.some(p => p.toId === m.id);
 
-          if (m.currentColor?.startsWith('#')) {
-            obj.color = m.currentColor;
-          } else if (m.state === 'IDLE' && !isProductIncoming) {
-            // Fallback to neutral when nothing is en route and no color is supplied
+          if (m.state === 'IDLE' && !isProductIncoming) {
+            // Only turn Gray if it's truly idle and no dot is about to hit it
             obj.color = '#95a5a6';
-          }
-
-          if (m.state === 'BUSY' && m.currentColor?.startsWith('#')) {
+          } else if (m.state === 'BUSY' && m.currentColor?.startsWith('#')) {
+            // If the machine is busy and we have a real color, we can update it
+            // OR you can keep it as is and let the animate() hit handle it
             const productInFlight = this.movingProducts.find(p => p.toId === m.id);
             if (productInFlight) productInFlight.color = m.currentColor;
           }

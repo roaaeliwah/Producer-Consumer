@@ -56,8 +56,14 @@ public class Machine implements Runnable, QueueObserver {
                 setState(MachineState.IDLE);
                 flash();
 
-                for (SimQueue queue : outputQueues) {
-                    queue.put(product);
+                if (!outputQueues.isEmpty()) {
+                    SimQueue shortestQueue = outputQueues.get(0);
+                    for (SimQueue queue : outputQueues) {
+                        if (queue.size() < shortestQueue.size()) {
+                            shortestQueue = queue;
+                        }
+                    }
+                    shortestQueue.put(product);
                 }
 
                 // Reset machine
