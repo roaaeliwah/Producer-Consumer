@@ -81,3 +81,7 @@ The simulation state (machine states, colors, queue sizes, product locations) is
 - **Reactive State Management**: The frontend uses reactive programming (RxJS) to handle the stream of simulation data from the backend.
 
 ## Demo Video:
+
+
+https://github.com/user-attachments/assets/b059eca6-1e00-49ce-9339-c93e3759df84
+
